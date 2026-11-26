@@ -1,0 +1,42 @@
+/* Odak halkası yalnızca kumanda/klavye kullanılırken görünür (dokunmatikte rahatsız etmez) */
+.focusable:focus, .tv-focused, button:focus { outline: none; box-shadow: none; }
+input:focus, textarea:focus { outline: none; border-color: var(--accent); }
+body.remote-mode :focus {
+  outline: 3px solid #fff; outline-offset: 2px;
+  box-shadow: 0 0 0 6px var(--accent), 0 0 22px var(--accent-glow);
+  z-index: 5;
+}
+.btn, .tab-btn, .list-item { min-height: 40px; }
+@media (pointer: coarse) { .btn, .tab-btn, .list-item, .fs-drawer-item { min-height: 46px; } }
+@media (hover: none) { .shortcut-hint { display: none; } }
+
+/* TV / TV Box: 10-foot arayüz + overscan güvenli alan */
+html.is-tv { font-size: 18px; }
+html.is-tv body { padding: 2vh 2.5vw; }
+html.is-tv .shortcut-hint { display: flex; }
+
+/* Telefon dikey + dar ekran: tek sütun, video üstte yapışık */
+@media (max-width: 640px), (max-width: 820px) and (orientation: portrait) {
+  body { height: auto; min-height: 100dvh; overflow: auto; }
+  header { padding: 8px 10px; }
+  .nav-tabs { width: 100%; order: 3; }
+  .nav-tabs .tab-btn { flex: 1; justify-content: center; }
+  .header-actions { width: 100%; flex-wrap: wrap; }
+  .search-input { flex: 1; width: auto; }
+  .workspace { grid-template-columns: 1fr !important; overflow: visible; flex: none; }
+  .column { border-right: none; border-bottom: 1px solid var(--border); }
+  #playerCol { display: contents; }
+  .video-box { order: -3; position: sticky; top: 0; z-index: 20; max-height: none; border-radius: 0; }
+  .video-box.pseudo-fullscreen { position: fixed !important; }
+  .stream-info-bar { order: -2; }
+  .epg-section { order: 5; }
+  #groupCol { order: -1; }
+  .scroll-list { overflow: visible; flex: none; }
+  #groupList { display: flex; overflow-x: auto; overflow-y: hidden; }
+  #groupList .list-item { flex: none; margin: 0 4px 0 0; }
+  .vod-grid { overflow: visible; }
+}
+
+/* Native oynatıcı: video alanı şeffaf "delik" olur, altındaki Media3 görüntüsü görünür */
+html.native-player, html.native-player .np-clear { background: transparent !important; }
+html.native-player video { opacity: 0; }

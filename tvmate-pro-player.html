@@ -1,0 +1,3115 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0f17" />
+  <title>TVMate Pro - Android TV & PC</title>
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mpegts.js@latest/dist/mpegts.min.js"></script>
+  <style>
+    :root {
+      --bg-dark: #090d14;
+      --bg-panel: #111824;
+      --bg-card: #1a2333;
+      --accent: #3b82f6;
+      --accent-glow: rgba(59, 130, 246, 0.35);
+      --accent-soft: rgba(59, 130, 246, 0.18);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #263248;
+      --success: #22c55e;
+      --danger: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100dvh;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      user-select: none;
+      padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+    }
+
+    .focusable:focus,
+    .tv-focused,
+    button:focus,
+    input:focus,
+    textarea:focus {
+      outline: 3px solid var(--accent);
+      outline-offset: 2px;
+      box-shadow: 0 0 10px var(--accent-glow);
+      z-index: 5;
+    }
+
+    .focusable {
+      scroll-margin: 14px;
+    }
+
+    header {
+      min-height: 58px;
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px clamp(12px, 2vw, 24px);
+      gap: 12px;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 1.12rem;
+      letter-spacing: 0.4px;
+      white-space: nowrap;
+    }
+
+    .brand span {
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.68rem;
+      padding: 3px 8px;
+      border-radius: 999px;
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 8px;
+    }
+
+    .tab-btn, .btn {
+      background: var(--bg-card);
+      color: var(--text-main);
+      border: 1px solid var(--border);
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.86rem;
+      font-weight: 600;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tab-btn.active, .btn-primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .search-input {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 8px 12px;
+      border-radius: 8px;
+      width: clamp(150px, 18vw, 240px);
+      min-width: 130px;
+      font-size: 0.88rem;
+    }
+
+    .workspace {
+      flex: 1;
+      display: grid;
+      grid-template-columns: minmax(185px, 16vw) minmax(230px, 22vw) minmax(0, 1fr);
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .column {
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      background: var(--bg-panel);
+    }
+
+    .column:last-child {
+      border-right: none;
+      background: var(--bg-dark);
+    }
+
+    .col-header {
+      padding: 11px 14px;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .scroll-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+      contain: layout style;
+    }
+
+    .list-item {
+      padding: 10px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 4px;
+      border: 1px solid transparent;
+    }
+
+    .list-item.active {
+      background: var(--accent-soft);
+      border-color: rgba(59, 130, 246, 0.55);
+      color: #fff;
+    }
+
+    .channel-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .channel-logo {
+      width: 34px;
+      height: 34px;
+      object-fit: contain;
+      background: #0f172a;
+      border-radius: 6px;
+      padding: 3px;
+      flex-shrink: 0;
+    }
+
+    .channel-meta {
+      min-width: 0;
+    }
+
+    .channel-name {
+      font-size: 0.9rem;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .channel-sub {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .badge-catchup {
+      font-size: 0.68rem;
+      background: rgba(34, 197, 94, 0.16);
+      color: var(--success);
+      border: 1px solid rgba(34, 197, 94, 0.35);
+      padding: 2px 6px;
+      border-radius: 5px;
+      flex-shrink: 0;
+    }
+
+    .player-pane {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow-y: auto;
+      padding: clamp(10px, 1.5vw, 16px);
+      gap: 12px;
+    }
+
+    .video-box {
+      position: relative;
+      background: #000;
+      border-radius: 12px;
+      overflow: hidden;
+      aspect-ratio: 16 / 9;
+      max-height: min(48dvh, 62vw);
+      width: 100%;
+      border: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .video-box:fullscreen {
+      max-height: 100vh;
+      border-radius: 0;
+      border: none;
+    }
+
+    .video-box.pseudo-fullscreen {
+      position: fixed !important;
+      inset: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      max-height: 100vh !important;
+      z-index: 9999 !important;
+      border-radius: 0 !important;
+      border: none !important;
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #000;
+    }
+
+    .fs-hud-wrapper {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 28;
+      display: none;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 28px clamp(14px, 2.5vw, 28px) clamp(12px, 2vh, 22px);
+      background: linear-gradient(to top, rgba(6, 9, 15, 0.92) 0%, rgba(6, 9, 15, 0.62) 68%, rgba(6, 9, 15, 0) 100%);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.2s ease, visibility 0.2s ease;
+    }
+
+    .video-box:fullscreen .fs-hud-wrapper,
+    .video-box:-webkit-full-screen .fs-hud-wrapper,
+    .video-box.pseudo-fullscreen .fs-hud-wrapper {
+      display: flex;
+    }
+
+    .video-box:fullscreen.fs-hud-visible .fs-hud-wrapper,
+    .video-box:-webkit-full-screen.fs-hud-visible .fs-hud-wrapper,
+    .video-box.pseudo-fullscreen.fs-hud-visible .fs-hud-wrapper {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .fs-above-bar-badges {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .fs-info-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 9px;
+      border-radius: 6px;
+      font-size: 0.74rem;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      background: rgba(15, 23, 42, 0.84);
+      border: 1px solid rgba(148, 163, 184, 0.28);
+      color: #f8fafc;
+      backdrop-filter: blur(4px);
+    }
+
+    .fs-info-chip.res-hd {
+      border-color: rgba(59, 130, 246, 0.6);
+      color: #93c5fd;
+    }
+
+    .fs-info-chip.res-uhd {
+      border-color: rgba(250, 204, 21, 0.65);
+      color: #fde047;
+    }
+
+    .fs-info-chip.mode-live {
+      border-color: rgba(34, 197, 94, 0.55);
+      color: #86efac;
+    }
+
+    .fs-info-chip.mode-vod {
+      border-color: rgba(168, 85, 247, 0.55);
+      color: #d8b4fe;
+    }
+
+    .fs-control-bar {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 8px 12px;
+      border-radius: 10px;
+      background: rgba(17, 24, 36, 0.88);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+    }
+
+    .fs-bar-group {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .fs-bar-title {
+      font-size: 0.86rem;
+      font-weight: 700;
+      color: #f8fafc;
+      max-width: 34vw;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .num-dial-osd {
+      position: absolute;
+      top: 16px;
+      right: 20px;
+      background: rgba(9, 13, 20, 0.9);
+      border: 2px solid var(--accent);
+      color: #fff;
+      font-size: 1.6rem;
+      font-weight: 800;
+      padding: 6px 16px;
+      border-radius: 10px;
+      display: none;
+      z-index: 35;
+    }
+
+    .fs-overlay-btn {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      z-index: 25;
+      background: rgba(11, 15, 23, 0.78);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 0.86rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .video-box:fullscreen .fs-overlay-btn,
+    .video-box:-webkit-full-screen .fs-overlay-btn,
+    .video-box.pseudo-fullscreen .fs-overlay-btn {
+      display: flex;
+    }
+
+    .fs-channel-drawer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 500px;
+      max-width: 92vw;
+      background: rgba(9, 13, 20, 0.94);
+      border-right: 1px solid rgba(255, 255, 255, 0.14);
+      z-index: 30;
+      display: flex;
+      flex-direction: column;
+      transform: translateX(-105%);
+      transition: transform 0.18s ease-out;
+    }
+
+    .fs-channel-drawer.open {
+      transform: translateX(0);
+    }
+
+    .fs-drawer-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-weight: 700;
+      font-size: 0.94rem;
+      flex-shrink: 0;
+    }
+
+    .fs-drawer-close {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      color: #fff;
+      width: 30px;
+      height: 30px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .fs-drawer-body {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 40% 60%;
+      min-height: 0;
+    }
+
+    .fs-drawer-groups {
+      border-right: 1px solid rgba(255, 255, 255, 0.12);
+      overflow-y: auto;
+      padding: 8px;
+    }
+
+    .fs-drawer-list {
+      overflow-y: auto;
+      padding: 8px;
+    }
+
+    .fs-drawer-item {
+      padding: 8px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 4px;
+      border: 1px solid transparent;
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .fs-drawer-item.active {
+      background: rgba(59, 130, 246, 0.35);
+      border-color: var(--accent);
+    }
+
+    .stream-info-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      padding: 12px 16px;
+      border-radius: 10px;
+      flex-shrink: 0;
+    }
+
+    .stream-title {
+      font-size: 1.02rem;
+      font-weight: 700;
+    }
+
+    .stream-status {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .catchup-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .epg-section {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      flex: 1;
+      min-height: 150px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .epg-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .epg-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .epg-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: var(--bg-card);
+      border: 1px solid transparent;
+      font-size: 0.85rem;
+    }
+
+    .epg-item.live {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .epg-time {
+      color: var(--text-muted);
+      font-size: 0.76rem;
+      white-space: nowrap;
+    }
+
+    .btn-replay {
+      background: rgba(34, 197, 94, 0.18);
+      color: #86efac;
+      border: 1px solid rgba(34, 197, 94, 0.4);
+      padding: 5px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.76rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .vod-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 14px;
+      padding: 14px;
+      overflow-y: auto;
+      flex: 1;
+      contain: layout style;
+    }
+
+    .vod-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .vod-poster {
+      width: 100%;
+      aspect-ratio: 2 / 3;
+      object-fit: cover;
+      background: #0f172a;
+    }
+
+    .vod-title {
+      padding: 9px 10px;
+      font-size: 0.84rem;
+      font-weight: 600;
+      line-height: 1.3;
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.8);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 60;
+      padding: 16px;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal-box {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      width: 100%;
+      max-width: 640px;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .modal-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .modal-body {
+      padding: 16px 18px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group label {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .form-control {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 9px 12px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      width: 100%;
+    }
+
+    .empty-state {
+      color: var(--text-muted);
+      text-align: center;
+      padding: 24px 12px;
+      font-size: 0.88rem;
+    }
+
+    .toast-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 100;
+      pointer-events: none;
+    }
+
+    .toast {
+      background: var(--bg-card);
+      color: var(--text-main);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+    }
+
+    .toast.error { border-left-color: var(--danger); }
+    .toast.success { border-left-color: var(--success); }
+
+    .shortcut-hint {
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      background: var(--bg-panel);
+      border-top: 1px solid var(--border);
+      padding: 6px clamp(12px, 2vw, 24px);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    @media (max-width: 1024px) {
+      .workspace {
+        grid-template-columns: minmax(150px, 24%) minmax(190px, 32%) minmax(0, 44%);
+      }
+
+      .tab-btn, .btn {
+        padding: 7px 10px;
+        font-size: 0.8rem;
+      }
+
+      .video-box {
+        max-height: 38dvh;
+      }
+    }
+
+    @media (max-width: 768px) {
+      body {
+        height: auto;
+        min-height: 100dvh;
+        overflow-y: auto;
+        overflow-x: hidden;
+      }
+
+      header {
+        height: auto;
+        flex-wrap: wrap;
+        padding: 8px 10px;
+        gap: 8px;
+      }
+
+      .nav-tabs {
+        width: 100%;
+        order: 3;
+        justify-content: space-between;
+      }
+
+      .tab-btn {
+        flex: 1;
+        justify-content: center;
+        padding: 8px 6px;
+        font-size: 0.82rem;
+      }
+
+      .header-actions {
+        width: 100%;
+        order: 2;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .search-input {
+        width: 100%;
+        flex: 1 1 100%;
+      }
+
+      .header-actions .btn {
+        flex: 1 1 calc(50% - 6px);
+        justify-content: center;
+      }
+
+      .workspace {
+        grid-template-columns: 1fr !important;
+        display: flex;
+        flex-direction: column;
+        overflow: visible;
+      }
+
+      #liveWorkspace {
+        display: grid !important;
+        grid-template-columns: 36% 64% !important;
+      }
+
+      #vodWorkspace {
+        grid-template-columns: 1fr !important;
+      }
+
+      #playerCol {
+        grid-column: 1 / -1;
+        padding: 10px;
+        height: auto;
+        overflow: visible;
+      }
+
+      .video-box {
+        max-height: 32dvh;
+      }
+
+      .column {
+        border-right: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+        max-height: 230px;
+      }
+
+      #channelCol {
+        border-right: none;
+      }
+
+      .shortcut-hint {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      ▶ TVMATE <span>TV & PC</span>
+    </div>
+
+    <div class="nav-tabs" id="mainTabs">
+      <button type="button" class="tab-btn focusable active" data-section="live">Canlı TV</button>
+      <button type="button" class="tab-btn focusable" data-section="movies">Filmler</button>
+      <button type="button" class="tab-btn focusable" data-section="series">Diziler</button>
+    </div>
+
+    <div class="header-actions">
+      <input type="text" id="searchInput" class="search-input focusable" placeholder="Kanal, film veya dizi ara..." />
+      <button type="button" id="openVpnBtn" class="btn focusable">🛡️ VPN / Proxy</button>
+      <button type="button" id="openPlaylistBtn" class="btn btn-primary focusable">📂 Listeler / + Ekle</button>
+      <button type="button" id="headerFullscreenBtn" class="btn focusable" title="Tam Ekran (F)">⛶ Tam Ekran</button>
+    </div>
+  </header>
+
+  <main class="workspace" id="liveWorkspace">
+    <section class="column" id="groupCol">
+      <div class="col-header">
+        <span>Gruplar</span>
+        <span id="groupCount">0</span>
+      </div>
+      <div class="scroll-list" id="groupList"></div>
+    </section>
+
+    <section class="column" id="channelCol">
+      <div class="col-header">
+        <span>Kanallar</span>
+        <span id="channelCount">0</span>
+      </div>
+      <div class="scroll-list" id="channelList"></div>
+      <div id="channelPager" style="display:none; padding:8px 10px; border-top:1px solid var(--border); gap:6px; align-items:center; justify-content:space-between; background:var(--bg-panel); flex-shrink:0;">
+        <button type="button" class="btn focusable" id="prevPageBtn" style="padding:5px 10px; font-size:0.78rem;">◀ Önceki</button>
+        <span id="pageInfoText" style="font-size:0.76rem; color:var(--text-muted);">1 / 1</span>
+        <button type="button" class="btn focusable" id="nextPageBtn" style="padding:5px 10px; font-size:0.78rem;">Sonraki ▶</button>
+      </div>
+    </section>
+
+    <section class="player-pane" id="playerCol">
+      <div class="video-box" id="videoBox">
+        <video id="videoPlayer" controls autoplay playsinline preload="metadata"></video>
+        <div class="num-dial-osd" id="numDialOsd"></div>
+
+        <button type="button" class="fs-overlay-btn focusable" id="fsToggleDrawerBtn">☰ Kanallar (C)</button>
+        <div class="fs-channel-drawer" id="fsChannelDrawer">
+          <div class="fs-drawer-header">
+            <span>Kategoriler & Kanallar</span>
+            <button type="button" class="fs-drawer-close focusable" id="fsCloseDrawerBtn">✕</button>
+          </div>
+          <div class="fs-drawer-body">
+            <div class="fs-drawer-groups" id="fsDrawerGroups"></div>
+            <div class="fs-drawer-list" id="fsDrawerList"></div>
+          </div>
+        </div>
+
+        <div class="fs-hud-wrapper" id="fsHudWrapper">
+          <div class="fs-above-bar-badges" id="fsAboveBarBadges">
+            <span class="fs-info-chip mode-live" id="fsBadgeType">📡 CANLI</span>
+            <span class="fs-info-chip res-hd" id="fsBadgeRes">📺 HD</span>
+            <span class="fs-info-chip" id="fsBadgeCodec">🎞️ HLS</span>
+            <span class="fs-info-chip" id="fsBadgeOffset">⏱️ CANLI</span>
+          </div>
+          <div class="fs-control-bar" id="fsControlBar">
+            <div class="fs-bar-group">
+              <button type="button" class="btn focusable" id="fsPlayPauseBtn">⏸ Duraklat</button>
+              <button type="button" class="btn focusable" id="fsRewind15Btn">-15 sn</button>
+              <button type="button" class="btn focusable" id="fsForward15Btn">+15 sn</button>
+              <button type="button" class="btn focusable" id="fsBack30Btn">-30 dk</button>
+              <button type="button" class="btn focusable" id="fsLiveBtn">● Canlı</button>
+              <span class="fs-bar-title" id="fsBarTitle">Yayın</span>
+            </div>
+            <div class="fs-bar-group">
+              <button type="button" class="btn focusable" id="fsMuteBtn">🔊 Ses</button>
+              <button type="button" class="btn focusable" id="fsExitBtn">⛶ Çık</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stream-info-bar">
+        <div>
+          <div class="stream-title" id="nowPlayingTitle">Bir kanal seçin</div>
+          <div class="stream-status" id="nowPlayingSub">Düşük RAM koruması aktif • F veya Çift Tık ile tam ekran</div>
+        </div>
+
+        <div class="catchup-controls">
+          <button type="button" class="btn focusable" id="favToggleBtn">☆ Favori</button>
+          <button type="button" class="btn focusable" id="fullscreenBtn">⛶ Tam Ekran (F)</button>
+          <button type="button" class="btn focusable" id="jumpLiveBtn">● Canlıya Dön</button>
+          <button type="button" class="btn focusable" data-back-minutes="180">-3 Saat</button>
+          <button type="button" class="btn focusable" data-back-minutes="60">-1 Saat</button>
+          <button type="button" class="btn focusable" data-back-minutes="30">-30 dk</button>
+          <button type="button" class="btn focusable" id="stepBack15Btn">-15 sn</button>
+          <button type="button" class="btn focusable" id="stepFwd15Btn">+15 sn</button>
+        </div>
+      </div>
+
+      <div class="epg-section">
+        <div class="epg-header">
+          <strong>EPG Yayın Akışı & Geri Alma</strong>
+          <span class="channel-sub" id="epgStatus">Hafif Mod</span>
+        </div>
+        <div class="epg-list" id="epgList">
+          <div class="empty-state">Kanal seçildiğinde yayın akışı burada görünür.</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <main class="workspace" id="vodWorkspace" style="display: none; grid-template-columns: 260px 1fr;">
+    <section class="column">
+      <div class="col-header">
+        <span id="vodGroupTitle">Kategoriler</span>
+        <span id="vodGroupCount">0</span>
+      </div>
+      <div class="scroll-list" id="vodGroupList"></div>
+    </section>
+    <section style="display:flex; flex-direction:column; min-height:0;">
+      <div class="col-header">
+        <span id="vodItemsTitle">İçerikler</span>
+        <span id="vodItemsCount">0</span>
+      </div>
+      <div class="vod-grid" id="vodGrid"></div>
+      <div id="vodPager" style="display:none; padding:8px 14px; border-top:1px solid var(--border); gap:8px; align-items:center; justify-content:space-between; background:var(--bg-panel); flex-shrink:0;">
+        <button type="button" class="btn focusable" id="vodPrevPageBtn" style="padding:5px 10px; font-size:0.78rem;">◀ Önceki</button>
+        <span id="vodPageInfoText" style="font-size:0.76rem; color:var(--text-muted);">1 / 1</span>
+        <button type="button" class="btn focusable" id="vodNextPageBtn" style="padding:5px 10px; font-size:0.78rem;">Sonraki ▶</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="shortcut-hint">
+    <span>Kumanda / Klavye: Yön Tuşları (Gezin) • OK / Enter (Seç) • 0-9 (Kanal No) • Geri / ESC (Kapat/Çık)</span>
+    <span>TV Box Koruması: Dar Buffer & Otomatik Bellek Temizliği Aktif</span>
+  </footer>
+
+  <div class="modal-backdrop" id="playlistModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>📡 Oynatma Listeleri & Yeni Liste Ekle</h3>
+        <button type="button" class="btn focusable" id="closePlaylistModal">✕ Kapat</button>
+      </div>
+      <div class="modal-body">
+        <div id="importProgressBox" style="display:none; background:rgba(59,130,246,0.12); border:1px solid var(--accent); border-radius:10px; padding:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <strong id="importStatusTitle" style="font-size:0.86rem; color:#93c5fd;">Liste işleniyor...</strong>
+            <span id="importPercentText" style="font-size:0.8rem; font-weight:700;">0%</span>
+          </div>
+          <div style="width:100%; height:7px; background:var(--bg-dark); border-radius:999px; overflow:hidden; margin-bottom:10px;">
+            <div id="importProgressBar" style="width:0%; height:100%; background:var(--accent);"></div>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; text-align:center;">
+            <div style="background:var(--bg-card); padding:6px; border-radius:7px; border:1px solid var(--border);">
+              <div style="font-size:0.7rem; color:var(--text-muted);">📺 Canlı Kanal</div>
+              <div id="liveCountLive" style="font-size:1rem; font-weight:800; color:#60a5fa;">0</div>
+            </div>
+            <div style="background:var(--bg-card); padding:6px; border-radius:7px; border:1px solid var(--border);">
+              <div style="font-size:0.7rem; color:var(--text-muted);">🎬 Film (VOD)</div>
+              <div id="liveCountMovies" style="font-size:1rem; font-weight:800; color:#34d399;">0</div>
+            </div>
+            <div style="background:var(--bg-card); padding:6px; border-radius:7px; border:1px solid var(--border);">
+              <div style="font-size:0.7rem; color:var(--text-muted);">🎞️ Dizi</div>
+              <div id="liveCountSeries" style="font-size:1rem; font-weight:800; color:#fbbf24;">0</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group" style="background:var(--bg-dark); padding:10px 12px; border-radius:10px; border:1px solid var(--border);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+            <label style="color:#f8fafc;">📚 Kayıtlı Oynatma Listelerim (<span id="savedPlaylistsCount">0</span>)</label>
+            <button type="button" id="resetDemoBtn" class="btn focusable" style="padding:4px 9px; font-size:0.75rem;">Demo Listeye Geç</button>
+          </div>
+          <div id="savedPlaylistsContainer" style="display:flex; flex-direction:column; gap:6px; max-height:145px; overflow-y:auto;"></div>
+        </div>
+
+        <div class="form-group">
+          <label>Liste Adı (Opsiyonel)</label>
+          <input type="text" id="playlistNameInput" class="form-control focusable" placeholder="Örn: Ana IPTV Listem, Spor Listesi..." />
+        </div>
+
+        <div class="form-group">
+          <label>1. Yöntem: M3U / M3U8 Bağlantı URL'si</label>
+          <div class="form-row">
+            <input type="url" id="m3uUrlInput" class="form-control focusable" style="flex:1;" placeholder="http://ornek-sunucu.com/get.php?username=...&type=m3u_plus" />
+            <button type="button" id="loadM3uUrlBtn" class="btn btn-primary focusable">Yükle</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>2. Yöntem: Xtream Codes API Girişi</label>
+          <input type="text" id="xtreamHost" class="form-control focusable" placeholder="Sunucu URL (Örn: http://tv.sunucu.com:8080)" />
+          <div class="form-row" style="margin-top:6px;">
+            <input type="text" id="xtreamUser" class="form-control focusable" placeholder="Kullanıcı Adı" style="flex:1;" />
+            <input type="password" id="xtreamPass" class="form-control focusable" placeholder="Şifre" style="flex:1;" />
+          </div>
+          <button type="button" id="loadXtreamBtn" class="btn btn-primary focusable" style="margin-top:8px; justify-content:center;">Xtream ile Bağlan</button>
+        </div>
+
+        <div class="form-group">
+          <label>3. Yöntem: Yerel .M3U / .M3U8 Dosyası Seç veya Metin Yapıştır</label>
+          <input type="file" id="m3uFileInput" accept=".m3u,.m3u8,.txt" class="form-control focusable" />
+          <textarea id="m3uRawInput" rows="3" class="form-control focusable" placeholder="#EXTM3U&#10;#EXTINF:-1 tvg-logo=&quot;...&quot; group-title=&quot;Ulusal&quot;,Kanal Adı&#10;https://yayin-linki.m3u8"></textarea>
+          <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:6px;">
+            <button type="button" id="parseRawM3uBtn" class="btn btn-primary focusable">Metinden İçeri Aktar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="vpnModal">
+    <div class="modal-box" style="max-width:480px;">
+      <div class="modal-header">
+        <h3>🛡️ VPN & Proxy Ayarları</h3>
+        <button type="button" class="btn focusable" id="closeVpnModalBtn">✕ Kapat</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Durum: <strong id="vpnStatusText" style="color: var(--text-muted);">Bağlı Değil</strong></label>
+        </div>
+        <div class="form-group">
+          <label>Dahili Hazır Tünel Profilleri (Tek Tıkla Seç)</label>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(135px, 1fr)); gap:8px;" id="builtinVpnProfiles">
+            <button type="button" class="btn focusable vpn-profile-btn" data-profile="direct" data-proxy="" data-label="Doğrudan Bağlantı">🌐 Doğrudan (Kapalı)</button>
+            <button type="button" class="btn focusable vpn-profile-btn" data-profile="corsproxy" data-proxy="https://corsproxy.io/?" data-label="Dahili Tünel 1 (Hızlı)">⚡ Dahili Tünel 1</button>
+            <button type="button" class="btn focusable vpn-profile-btn" data-profile="allorigins" data-proxy="https://api.allorigins.win/raw?url=" data-label="Dahili Tünel 2 (Yedek)">🛡️ Dahili Tünel 2</button>
+          </div>
+          <span style="font-size:0.74rem; color:var(--text-muted);">Not: Tarayıcı/TV Box içinde dahili tünel profilleri liste ve uyumlu istekler için hazır profil sunar; canlı yayınlarda hız düşerse "Doğrudan" seçin.</span>
+        </div>
+        <div class="form-group">
+          <label>Sertifika / Yapılandırma URL (.zip veya .ovpn)</label>
+          <input type="url" id="vpnUrlInput" class="form-control focusable" placeholder="https://ornek.com/berlin-vpn.zip" />
+        </div>
+        <div class="form-group">
+          <label>Özel Proxy / Tünel URL (Elle Ekleme - Opsiyonel)</label>
+          <input type="url" id="vpnProxyInput" class="form-control focusable" placeholder="https://corsproxy.io/?" />
+        </div>
+        <div style="display:flex; justify-content:space-between; gap:10px; margin-top:6px;">
+          <button type="button" class="btn focusable" id="disconnectVpnBtn" style="border-color: var(--danger); color: #fca5a5;">Bağlantıyı Kes</button>
+          <button type="button" class="btn btn-primary focusable" id="saveVpnBtn">VPN Aktif Et</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script>
+    const DEMO_CHANNELS = [
+      {
+        id: "demo-ch-1",
+        name: "Demo Canlı Kanal (HLS)",
+        category: "Ulusal Kanallar",
+        logo: "",
+        url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
+        catchup: true
+      },
+      {
+        id: "demo-ch-2",
+        name: "Demo Spor & Akış",
+        category: "Spor & Belgesel",
+        logo: "",
+        url: "https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8",
+        catchup: true
+      }
+    ];
+
+    const DEMO_VOD = [
+      {
+        id: "demo-mov-1",
+        type: "movies",
+        title: "Big Buck Bunny (Demo Film)",
+        category: "Animasyon",
+        poster: "",
+        url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"
+      },
+      {
+        id: "demo-ser-1",
+        type: "series",
+        title: "Elephants Dream - Bölüm 1",
+        category: "Bilim Kurgu",
+        poster: "",
+        url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4"
+      }
+    ];
+
+    const MAX_SAVED_PLAYLISTS = 4;
+    const MAX_ITEMS_PER_PLAYLIST_STORAGE = 2500;
+    const MAX_STORAGE_BYTES = 1800000;
+    const MAX_FAVORITES = 200;
+    const MAX_PLAYBACK_STATES = 150;
+
+    const state = {
+      activeTab: "live",
+      channels: [],
+      vodItems: [],
+      savedPlaylists: [],
+      activePlaylistId: "demo",
+      favorites: new Set(),
+      channelPlaybackMemory: {},
+      lastLiveSession: {
+        channelId: "",
+        channelUrl: "",
+        channelName: "",
+        category: "",
+        wasFullscreen: false
+      },
+      selectedCategory: "Tümü",
+      fsDrawerCategory: "Tümü",
+      selectedVodCategory: "Tümü",
+      channelPage: 1,
+      vodPage: 1,
+      pageSize: 100,
+      searchQuery: "",
+      currentChannel: null,
+      hlsInstance: null,
+      mpegtsInstance: null,
+      bufferTrimTimer: null,
+      memorySaveTimer: null,
+      fsHudHideTimer: null,
+      streamKind: "live",
+      streamCodecLabel: "HLS",
+      pendingSeekOffsetSec: 0,
+      dialBuffer: "",
+      dialTimer: null,
+      vpnConfig: { active: false, profile: "direct", proxyPrefix: "", label: "" }
+    };
+
+    const videoEl = document.getElementById("videoPlayer");
+    const videoBox = document.getElementById("videoBox");
+    const fsDrawer = document.getElementById("fsChannelDrawer");
+    const fsHudWrapper = document.getElementById("fsHudWrapper");
+    const playlistModal = document.getElementById("playlistModal");
+    const vpnModal = document.getElementById("vpnModal");
+
+    function hideFsHud() {
+      if (state.fsHudHideTimer) {
+        clearTimeout(state.fsHudHideTimer);
+        state.fsHudHideTimer = null;
+      }
+      videoBox.classList.remove("fs-hud-visible");
+    }
+
+    function showFsHud(autoHideMs = 4200) {
+      if (!isFullscreenActive()) {
+        hideFsHud();
+        return;
+      }
+      updateFsHudInfo();
+      videoBox.classList.add("fs-hud-visible");
+      if (state.fsHudHideTimer) {
+        clearTimeout(state.fsHudHideTimer);
+        state.fsHudHideTimer = null;
+      }
+      if (autoHideMs > 0) {
+        state.fsHudHideTimer = setTimeout(() => {
+          if (!fsDrawer.classList.contains("open")) {
+            hideFsHud();
+          }
+        }, autoHideMs);
+      }
+    }
+
+    function getResolutionLabel() {
+      let w = Number(videoEl.videoWidth || 0);
+      let h = Number(videoEl.videoHeight || 0);
+
+      if ((!w || !h) && state.hlsInstance && state.hlsInstance.levels && state.hlsInstance.levels.length > 0) {
+        const lvlIdx = state.hlsInstance.currentLevel >= 0 ? state.hlsInstance.currentLevel : state.hlsInstance.loadLevel;
+        const lvl = state.hlsInstance.levels[lvlIdx] || state.hlsInstance.levels[state.hlsInstance.levels.length - 1];
+        if (lvl) {
+          w = Number(lvl.width || 0);
+          h = Number(lvl.height || 0);
+        }
+      }
+
+      if (!h && !w) return { text: "📺 SD / OTO", tier: "" };
+      if (h >= 2160 || w >= 3840) return { text: "📺 4K UHD", tier: "res-uhd" };
+      if (h >= 1440 || w >= 2560) return { text: "📺 2K QHD", tier: "res-uhd" };
+      if (h >= 1080 || w >= 1920) return { text: "📺 1080p FHD", tier: "res-hd" };
+      if (h >= 720 || w >= 1280) return { text: "📺 720p HD", tier: "res-hd" };
+      return { text: `📺 ${h || w}p`, tier: "" };
+    }
+
+    function updateFsHudInfo() {
+      const typeChip = document.getElementById("fsBadgeType");
+      const resChip = document.getElementById("fsBadgeRes");
+      const codecChip = document.getElementById("fsBadgeCodec");
+      const offsetChip = document.getElementById("fsBadgeOffset");
+      const barTitle = document.getElementById("fsBarTitle");
+      const playPauseBtn = document.getElementById("fsPlayPauseBtn");
+      const muteBtn = document.getElementById("fsMuteBtn");
+
+      if (barTitle) {
+        barTitle.textContent = document.getElementById("nowPlayingTitle").textContent || "Yayın";
+      }
+
+      if (typeChip) {
+        if (state.streamKind === "movies") {
+          typeChip.textContent = "🎬 FİLM";
+          typeChip.className = "fs-info-chip mode-vod";
+        } else if (state.streamKind === "series") {
+          typeChip.textContent = "🎞️ DİZİ";
+          typeChip.className = "fs-info-chip mode-vod";
+        } else {
+          typeChip.textContent = "📡 CANLI TV";
+          typeChip.className = "fs-info-chip mode-live";
+        }
+      }
+
+      if (resChip) {
+        const res = getResolutionLabel();
+        resChip.textContent = res.text;
+        resChip.className = `fs-info-chip ${res.tier}`.trim();
+      }
+
+      if (codecChip) {
+        codecChip.textContent = `⚡ ${state.streamCodecLabel || "HLS"}`;
+      }
+
+      if (offsetChip) {
+        let behindSec = 0;
+        if (state.currentChannel) {
+          const mem = state.channelPlaybackMemory[getChannelMemoryKey(state.currentChannel)];
+          if (mem && mem.offsetSec > 4) behindSec = Math.round(mem.offsetSec);
+        }
+        try {
+          if (videoEl.seekable && videoEl.seekable.length > 0) {
+            const seekEnd = videoEl.seekable.end(videoEl.seekable.length - 1);
+            if (seekEnd > 5 && Number.isFinite(videoEl.currentTime)) {
+              const diff = Math.round(seekEnd - videoEl.currentTime);
+              if (diff > 4) behindSec = diff;
+              else behindSec = 0;
+            }
+          }
+        } catch (e) {}
+
+        if (state.streamKind !== "live" && Number.isFinite(videoEl.duration) && videoEl.duration > 0) {
+          const curMin = Math.floor(videoEl.currentTime / 60);
+          const totMin = Math.floor(videoEl.duration / 60);
+          offsetChip.textContent = `⏱️ ${curMin}dk / ${totMin}dk`;
+        } else if (behindSec > 0) {
+          const mins = Math.floor(behindSec / 60);
+          const secs = behindSec % 60;
+          offsetChip.textContent = mins > 0 ? `⏪ -${mins}dk ${secs}sn` : `⏪ -${secs}sn`;
+        } else {
+          offsetChip.textContent = "● CANLI";
+        }
+      }
+
+      if (playPauseBtn) {
+        playPauseBtn.textContent = videoEl.paused ? "▶ Oynat" : "⏸ Duraklat";
+      }
+      if (muteBtn) {
+        muteBtn.textContent = videoEl.muted ? "🔇 Sessiz" : "🔊 Ses";
+      }
+    }
+
+    function buildCatchupOrTimeshiftUrl(ch, secondsBack, durationSec = 3600) {
+      if (!ch || !ch.url || secondsBack <= 0) return ch ? ch.url : "";
+      const nowSec = Math.floor(Date.now() / 1000);
+      const startSec = nowSec - secondsBack;
+      const endSec = nowSec;
+      const offsetMinutes = Math.max(1, Math.round(secondsBack / 60));
+
+      if (ch.catchupSource) {
+        let tpl = ch.catchupSource
+          .replace(/\$\{start\}/gi, String(startSec))
+          .replace(/\{start\}/gi, String(startSec))
+          .replace(/\$\{timestamp\}/gi, String(startSec))
+          .replace(/\{timestamp\}/gi, String(startSec))
+          .replace(/\$\{utc\}/gi, String(startSec))
+          .replace(/\{utc\}/gi, String(startSec))
+          .replace(/\$\{end\}/gi, String(endSec))
+          .replace(/\{end\}/gi, String(endSec))
+          .replace(/\$\{duration\}/gi, String(durationSec))
+          .replace(/\{duration\}/gi, String(durationSec))
+          .replace(/\$\{offset\}/gi, String(offsetMinutes))
+          .replace(/\{offset\}/gi, String(offsetMinutes));
+
+        if (/^https?:\/\//i.test(tpl)) {
+          return tpl;
+        }
+      }
+
+      const sep = ch.url.includes("?") ? "&" : "?";
+      return `${ch.url}${sep}utc=${startSec}&lutc=${nowSec}&duration=${durationSec}`;
+    }
+
+    function compactItemForStorage(item, isVod = false) {
+      if (!item || typeof item !== "object") return {};
+      if (isVod) {
+        return {
+          id: item.id || "",
+          type: item.type || "movies",
+          title: item.title || "",
+          category: item.category || "Genel",
+          poster: item.poster || "",
+          url: item.url || ""
+        };
+      }
+      return {
+        id: item.id || "",
+        name: item.name || "",
+        category: item.category || "Genel",
+        logo: item.logo || "",
+        url: item.url || "",
+        catchup: Boolean(item.catchup),
+        catchupDays: Number(item.catchupDays || 0),
+        catchupSource: item.catchupSource || ""
+      };
+    }
+
+    function getChannelMemoryKey(ch) {
+      if (!ch) return "";
+      const base = (ch.url || "").split("?")[0];
+      return `${ch.id || ""}|${ch.name || ""}|${base}`;
+    }
+
+    function saveChannelPlaybackSnapshot(ch) {
+      if (!ch || !ch.url) return;
+      const key = getChannelMemoryKey(ch);
+      if (!key) return;
+
+      let offsetSec = 0;
+      const prev = state.channelPlaybackMemory[key] || { offsetSec: 0 };
+      if (prev.offsetSec > 0) {
+        offsetSec = Number(prev.offsetSec);
+      }
+
+      try {
+        if (videoEl.seekable && videoEl.seekable.length > 0) {
+          const seekEnd = videoEl.seekable.end(videoEl.seekable.length - 1);
+          if (seekEnd > 5 && Number.isFinite(videoEl.currentTime)) {
+            const behind = Math.round(seekEnd - videoEl.currentTime);
+            offsetSec = behind > 3 ? behind : 0;
+          }
+        }
+      } catch (e) {}
+
+      state.channelPlaybackMemory[key] = {
+        offsetSec: Math.max(0, offsetSec),
+        catchupStartEpochSec: prev.catchupStartEpochSec || null,
+        catchupDurationSec: prev.catchupDurationSec || null,
+        updatedAt: Date.now()
+      };
+
+      const keys = Object.keys(state.channelPlaybackMemory);
+      if (keys.length > MAX_PLAYBACK_STATES) {
+        keys
+          .sort((a, b) => (state.channelPlaybackMemory[a]?.updatedAt || 0) - (state.channelPlaybackMemory[b]?.updatedAt || 0))
+          .slice(0, keys.length - MAX_PLAYBACK_STATES)
+          .forEach(k => delete state.channelPlaybackMemory[k]);
+      }
+    }
+
+    function applyProxyIfNeeded(rawUrl) {
+      if (!rawUrl) return "";
+      if (state.vpnConfig && state.vpnConfig.active && state.vpnConfig.proxyPrefix) {
+        const prefix = state.vpnConfig.proxyPrefix.trim();
+        if (prefix && !rawUrl.startsWith(prefix)) {
+          return prefix + encodeURIComponent(rawUrl);
+        }
+      }
+      return rawUrl;
+    }
+
+    function showToast(message, type = "info") {
+      const container = document.getElementById("toastContainer");
+      if (!container) return;
+      const el = document.createElement("div");
+      el.className = `toast ${type}`;
+      el.textContent = message;
+      container.appendChild(el);
+      setTimeout(() => {
+        el.remove();
+      }, 3200);
+    }
+
+    function saveData() {
+      try {
+        try {
+          const compactPlaylists = state.savedPlaylists.slice(0, MAX_SAVED_PLAYLISTS).map(pl => ({
+            id: pl.id,
+            name: pl.name,
+            liveCount: pl.liveCount || (pl.channels ? pl.channels.length : 0),
+            movieCount: pl.movieCount || (pl.vodItems ? pl.vodItems.filter(v => v.type === "movies").length : 0),
+            seriesCount: pl.seriesCount || (pl.vodItems ? pl.vodItems.filter(v => v.type === "series").length : 0),
+            channels: (pl.channels || []).slice(0, MAX_ITEMS_PER_PLAYLIST_STORAGE).map(c => compactItemForStorage(c, false)),
+            vodItems: (pl.vodItems || []).slice(0, MAX_ITEMS_PER_PLAYLIST_STORAGE).map(v => compactItemForStorage(v, true))
+          }));
+
+          const serializedPlaylists = JSON.stringify(compactPlaylists);
+          if (serializedPlaylists.length <= MAX_STORAGE_BYTES) {
+            localStorage.setItem("tvmate_saved_playlists", serializedPlaylists);
+          } else {
+            const trimmedPlaylists = compactPlaylists.slice(0, 2).map(pl => ({
+              ...pl,
+              channels: pl.channels.slice(0, 1000),
+              vodItems: pl.vodItems.slice(0, 800)
+            }));
+            localStorage.setItem("tvmate_saved_playlists", JSON.stringify(trimmedPlaylists));
+          }
+        } catch (plErr) {}
+
+        localStorage.setItem("tvmate_active_playlist_id", state.activePlaylistId);
+        localStorage.setItem("tvmate_favorites", JSON.stringify([...state.favorites].slice(0, MAX_FAVORITES)));
+        try {
+          localStorage.setItem("tvmate_playback_mem", JSON.stringify(state.channelPlaybackMemory));
+        } catch (memErr) {}
+        try {
+          localStorage.setItem("tvmate_last_live_session", JSON.stringify(state.lastLiveSession));
+        } catch (sessErr) {}
+      } catch (err) {
+        try { localStorage.removeItem("tvmate_saved_playlists"); } catch (e) {}
+      }
+    }
+
+    function loadStoredData() {
+      state.channels = [...DEMO_CHANNELS];
+      state.vodItems = [...DEMO_VOD];
+      state.savedPlaylists = [];
+      state.activePlaylistId = "demo";
+
+      try {
+        const rawFavs = localStorage.getItem("tvmate_favorites");
+        if (rawFavs) {
+          const parsedFavs = JSON.parse(rawFavs);
+          if (Array.isArray(parsedFavs)) {
+            state.favorites = new Set(parsedFavs.slice(0, MAX_FAVORITES));
+          }
+        }
+      } catch (e) {}
+
+      try {
+        const rawMem = localStorage.getItem("tvmate_playback_mem");
+        if (rawMem) {
+          const parsedMem = JSON.parse(rawMem);
+          if (parsedMem && typeof parsedMem === "object") {
+            state.channelPlaybackMemory = parsedMem;
+          }
+        }
+      } catch (e) {}
+
+      try {
+        const rawSession = localStorage.getItem("tvmate_last_live_session");
+        if (rawSession) {
+          const parsedSession = JSON.parse(rawSession);
+          if (parsedSession && typeof parsedSession === "object") {
+            state.lastLiveSession = {
+              channelId: parsedSession.channelId || "",
+              channelUrl: parsedSession.channelUrl || "",
+              channelName: parsedSession.channelName || "",
+              category: parsedSession.category || "Genel",
+              wasFullscreen: Boolean(parsedSession.wasFullscreen)
+            };
+          }
+        }
+      } catch (e) {}
+
+      try {
+        const rawVpn = localStorage.getItem("tvmate_vpn_cfg");
+        if (rawVpn) {
+          const parsedVpn = JSON.parse(rawVpn);
+          if (parsedVpn && typeof parsedVpn === "object") {
+            state.vpnConfig = {
+              active: Boolean(parsedVpn.active),
+              profile: parsedVpn.profile || "direct",
+              proxyPrefix: parsedVpn.proxyPrefix || "",
+              label: parsedVpn.label || ""
+            };
+            document.getElementById("vpnProxyInput").value = state.vpnConfig.proxyPrefix || "";
+            updateVpnUI(state.vpnConfig.active, state.vpnConfig.label);
+          }
+        }
+      } catch (e) {}
+
+      try {
+        const rawPlaylists = localStorage.getItem("tvmate_saved_playlists");
+        const activeId = localStorage.getItem("tvmate_active_playlist_id");
+        if (rawPlaylists) {
+          const parsedPl = JSON.parse(rawPlaylists);
+          if (Array.isArray(parsedPl) && parsedPl.length > 0) {
+            state.savedPlaylists = parsedPl.slice(0, MAX_SAVED_PLAYLISTS);
+            const found = activeId ? state.savedPlaylists.find(p => p.id === activeId) : null;
+            const target = found || state.savedPlaylists[0];
+            if (target) {
+              state.activePlaylistId = target.id;
+              state.channels = Array.isArray(target.channels) && target.channels.length ? target.channels : [...DEMO_CHANNELS];
+              state.vodItems = Array.isArray(target.vodItems) ? target.vodItems : [...DEMO_VOD];
+            }
+          }
+        }
+      } catch (e) {}
+    }
+
+    function updateFavBtnUI() {
+      const btn = document.getElementById("favToggleBtn");
+      if (!btn) return;
+      const isFav = Boolean(state.currentChannel && state.currentChannel.url && state.favorites.has(state.currentChannel.url));
+      btn.textContent = isFav ? "★ Favoride" : "☆ Favori";
+      btn.style.borderColor = isFav ? "#facc15" : "var(--border)";
+      btn.style.color = isFav ? "#fde047" : "var(--text-main)";
+    }
+
+    function updateVpnUI(active, label = "") {
+      const statusEl = document.getElementById("vpnStatusText");
+      const openBtn = document.getElementById("openVpnBtn");
+      if (statusEl) {
+        statusEl.textContent = active ? `Aktif (${label || "Bağlı"})` : "Bağlı Değil";
+        statusEl.style.color = active ? "var(--success)" : "var(--text-muted)";
+      }
+      if (openBtn) {
+        openBtn.textContent = active ? "🛡️ VPN Aktif" : "🛡️ VPN / Proxy";
+        openBtn.style.borderColor = active ? "var(--success)" : "var(--border)";
+      }
+    }
+
+    function jumpToCatchup(minutesBack) {
+      const ch = state.currentChannel;
+      if (!ch || !ch.url) {
+        showToast("Önce bir yayın seçin.", "error");
+        return;
+      }
+      const secsBack = Math.max(15, Number(minutesBack || 0) * 60);
+      saveChannelPlaybackSnapshot(ch);
+
+      try {
+        if (videoEl.seekable && videoEl.seekable.length > 0) {
+          const seekStart = videoEl.seekable.start(0);
+          const seekEnd = videoEl.seekable.end(videoEl.seekable.length - 1);
+          if (seekEnd > seekStart + 5) {
+            const targetTime = Math.max(seekStart, seekEnd - secsBack);
+            videoEl.currentTime = targetTime;
+            videoEl.play().catch(() => {});
+            const key = getChannelMemoryKey(ch);
+            state.channelPlaybackMemory[key] = {
+              offsetSec: Math.max(0, Math.round(seekEnd - targetTime)),
+              catchupStartEpochSec: null,
+              catchupDurationSec: null,
+              updatedAt: Date.now()
+            };
+            saveData();
+            document.getElementById("nowPlayingSub").textContent = `Grup: ${ch.category} • -${minutesBack} dk geri alındı`;
+            showToast(`-${minutesBack} dk geri alındı`, "success");
+            return;
+          }
+        }
+      } catch (e) {}
+
+      const catchupUrl = buildCatchupOrTimeshiftUrl(ch, secsBack, Math.max(3600, secsBack + 600));
+      const key = getChannelMemoryKey(ch);
+      state.channelPlaybackMemory[key] = {
+        offsetSec: secsBack,
+        catchupStartEpochSec: Math.floor(Date.now() / 1000) - secsBack,
+        catchupDurationSec: Math.max(3600, secsBack + 600),
+        updatedAt: Date.now()
+      };
+      saveData();
+      playStream(ch.url, ch.name, `Grup: ${ch.category} • -${minutesBack} dk Geri Alma (Catchup)`, ch, catchupUrl);
+      showToast(`-${minutesBack} dk yayın geri alınıyor...`, "success");
+    }
+
+    function stepRelativeSeconds(deltaSec) {
+      const ch = state.currentChannel;
+      if (!ch && !videoEl.src) {
+        showToast("Önce bir yayın seçin.", "error");
+        return;
+      }
+
+      try {
+        if (videoEl.seekable && videoEl.seekable.length > 0) {
+          const seekStart = videoEl.seekable.start(0);
+          const seekEnd = videoEl.seekable.end(videoEl.seekable.length - 1);
+          if (seekEnd > seekStart + 1) {
+            const nextTime = Math.max(seekStart, Math.min(seekEnd, videoEl.currentTime + deltaSec));
+            videoEl.currentTime = nextTime;
+            videoEl.play().catch(() => {});
+            if (ch) {
+              const key = getChannelMemoryKey(ch);
+              state.channelPlaybackMemory[key] = {
+                offsetSec: Math.max(0, Math.round(seekEnd - nextTime)),
+                catchupStartEpochSec: null,
+                catchupDurationSec: null,
+                updatedAt: Date.now()
+              };
+              saveData();
+            }
+            showToast(deltaSec < 0 ? `${deltaSec} sn geri alındı` : `+${deltaSec} sn ileri alındı`, "info");
+            return;
+          }
+        }
+
+        if (Number.isFinite(videoEl.duration) && videoEl.duration > 0) {
+          const nextTime = Math.max(0, Math.min(videoEl.duration, videoEl.currentTime + deltaSec));
+          videoEl.currentTime = nextTime;
+          videoEl.play().catch(() => {});
+          showToast(deltaSec < 0 ? `${deltaSec} sn geri alındı` : `+${deltaSec} sn ileri alındı`, "info");
+          return;
+        }
+      } catch (e) {}
+
+      if (ch) {
+        const key = getChannelMemoryKey(ch);
+        const prev = state.channelPlaybackMemory[key] || { offsetSec: 0 };
+        const nextOffset = Math.max(0, (prev.offsetSec || 0) - deltaSec);
+        state.channelPlaybackMemory[key] = {
+          offsetSec: nextOffset,
+          catchupStartEpochSec: null,
+          catchupDurationSec: null,
+          updatedAt: Date.now()
+        };
+        saveData();
+        const catchupUrl = nextOffset > 0 ? buildCatchupOrTimeshiftUrl(ch, nextOffset, Math.max(3600, nextOffset + 600)) : ch.url;
+        playStream(ch.url, ch.name, `Grup: ${ch.category} • Zaman kaydırma (${nextOffset} sn)`, ch, catchupUrl);
+        showToast(deltaSec < 0 ? `${deltaSec} sn geri alındı` : `+${deltaSec} sn ileri alındı`, "info");
+      }
+    }
+
+    function destroyCurrentPlayer() {
+      if (state.bufferTrimTimer) {
+        clearInterval(state.bufferTrimTimer);
+        state.bufferTrimTimer = null;
+      }
+      if (state.hlsInstance) {
+        try { state.hlsInstance.stopLoad(); } catch (e) {}
+        try { state.hlsInstance.detachMedia(); } catch (e) {}
+        try { state.hlsInstance.destroy(); } catch (e) {}
+        state.hlsInstance = null;
+      }
+      if (state.mpegtsInstance) {
+        try { state.mpegtsInstance.pause(); } catch (e) {}
+        try { state.mpegtsInstance.unload(); } catch (e) {}
+        try { state.mpegtsInstance.detachMediaElement(); } catch (e) {}
+        try { state.mpegtsInstance.destroy(); } catch (e) {}
+        state.mpegtsInstance = null;
+      }
+      try {
+        videoEl.pause();
+        videoEl.removeAttribute("src");
+        videoEl.load();
+      } catch (e) {}
+    }
+
+    function seekToSavedOffsetIfAny(ch) {
+      if (!ch || !ch.url) return false;
+      const key = getChannelMemoryKey(ch);
+      const mem = state.channelPlaybackMemory[key];
+      if (!mem || !mem.offsetSec || mem.offsetSec <= 3) return false;
+
+      const targetOffsetSec = mem.offsetSec;
+      let applied = false;
+
+      const tryApplySeek = () => {
+        if (applied) return true;
+        try {
+          if (videoEl.seekable && videoEl.seekable.length > 0) {
+            const seekStart = videoEl.seekable.start(0);
+            const seekEnd = videoEl.seekable.end(videoEl.seekable.length - 1);
+            if (seekEnd > seekStart + 2) {
+              const desiredTime = Math.max(seekStart, Math.min(seekEnd - 1, seekEnd - targetOffsetSec));
+              videoEl.currentTime = desiredTime;
+              applied = true;
+              const mins = Math.round(targetOffsetSec / 60);
+              document.getElementById("nowPlayingSub").textContent =
+                mins > 0
+                  ? `Grup: ${ch.category} • Hafızadan -${mins} dk geri alınmış konumdan devam ediyor`
+                  : `Grup: ${ch.category} • Hafızadan -${targetOffsetSec} sn konumundan devam ediyor`;
+              return true;
+            }
+          }
+        } catch (e) {}
+        return false;
+      };
+
+      if (!tryApplySeek()) {
+        const onReady = () => {
+          if (tryApplySeek()) {
+            videoEl.removeEventListener("loadedmetadata", onReady);
+            videoEl.removeEventListener("canplay", onReady);
+          }
+        };
+        videoEl.addEventListener("loadedmetadata", onReady);
+        videoEl.addEventListener("canplay", onReady);
+        setTimeout(() => {
+          tryApplySeek();
+          videoEl.removeEventListener("loadedmetadata", onReady);
+          videoEl.removeEventListener("canplay", onReady);
+        }, 2500);
+      }
+      return true;
+    }
+
+    function startBufferGuard() {
+      if (state.bufferTrimTimer) clearInterval(state.bufferTrimTimer);
+      state.bufferTrimTimer = setInterval(() => {
+        if (document.hidden) return;
+        try {
+          if (state.currentChannel) {
+            saveChannelPlaybackSnapshot(state.currentChannel);
+          }
+          if (state.currentChannel && !videoEl.paused && videoEl.readyState === 2 && videoEl.ended) {
+            videoEl.play().catch(() => {});
+          }
+        } catch (e) {}
+      }, 15000);
+    }
+
+    function playStream(rawUrl, title, subText, channelObj = null, overrideUrl = null) {
+      if (!rawUrl && !overrideUrl) {
+        showToast("Bu kanalda geçerli yayın bağlantısı yok.", "error");
+        return;
+      }
+
+      if (state.currentChannel && (!channelObj || state.currentChannel.url !== channelObj.url || state.currentChannel.name !== channelObj.name)) {
+        saveChannelPlaybackSnapshot(state.currentChannel);
+      }
+
+      if (channelObj) {
+        state.currentChannel = channelObj;
+        state.lastLiveSession = {
+          channelId: channelObj.id || "",
+          channelUrl: channelObj.url,
+          channelName: channelObj.name,
+          category: channelObj.category || "Genel",
+          wasFullscreen: isFullscreenActive()
+        };
+        try {
+          localStorage.setItem("tvmate_last_live_session", JSON.stringify(state.lastLiveSession));
+        } catch (e) {}
+        updateFavBtnUI();
+      } else if (!overrideUrl) {
+        state.currentChannel = null;
+      }
+
+      const sourceUrl = (overrideUrl || rawUrl).trim();
+      const url = applyProxyIfNeeded(sourceUrl);
+
+      destroyCurrentPlayer();
+
+      document.getElementById("nowPlayingTitle").textContent = title;
+      document.getElementById("nowPlayingSub").textContent = subText + " • Bağlanıyor...";
+      renderChannels();
+      renderFsDrawer();
+      renderEpg();
+
+      const lowerUrl = url.toLowerCase();
+      const isMp4OrVod = /\.(mp4|mkv|avi|webm|mov)(\?|$)/i.test(lowerUrl);
+      const isTsStream = /\.(ts|m3uts)(\?|$)/i.test(lowerUrl) || lowerUrl.includes("output=ts") || lowerUrl.includes("type=ts");
+      const isHlsStream = lowerUrl.includes(".m3u8") || lowerUrl.includes("output=m3u8") || lowerUrl.includes("output=hls") || (!isMp4OrVod && !isTsStream);
+
+      if (channelObj) {
+        state.streamKind = "live";
+      } else if (subText && subText.startsWith("Film")) {
+        state.streamKind = "movies";
+      } else if (subText && subText.startsWith("Dizi")) {
+        state.streamKind = "series";
+      } else {
+        state.streamKind = isMp4OrVod ? "movies" : "live";
+      }
+      state.streamCodecLabel = isTsStream ? "MPEG-TS" : (isMp4OrVod ? "MP4 / VOD" : "HLS");
+      updateFsHudInfo();
+
+      const tryNativeFallback = (reasonLabel) => {
+        try {
+          if (state.hlsInstance) {
+            try { state.hlsInstance.destroy(); } catch (e) {}
+            state.hlsInstance = null;
+          }
+          if (state.mpegtsInstance) {
+            try { state.mpegtsInstance.destroy(); } catch (e) {}
+            state.mpegtsInstance = null;
+          }
+          state.streamCodecLabel = reasonLabel || "NATIVE";
+          updateFsHudInfo();
+          videoEl.src = url;
+          videoEl.load();
+          videoEl.play().catch(() => {});
+        } catch (e) {}
+      };
+
+      if (isHlsStream && window.Hls && window.Hls.isSupported()) {
+        const hls = new window.Hls({
+          enableWorker: true,
+          lowLatencyMode: false,
+          maxBufferLength: 14,
+          maxMaxBufferLength: 24,
+          maxBufferSize: 16 * 1000 * 1000,
+          backBufferLength: 12,
+          liveBackBufferLength: 12
+        });
+        let networkRetries = 0;
+        hls.loadSource(url);
+        hls.attachMedia(videoEl);
+        hls.on(window.Hls.Events.MANIFEST_PARSED, () => {
+          document.getElementById("nowPlayingSub").textContent = subText;
+          videoEl.play().catch(() => {});
+          updateFsHudInfo();
+          if (!overrideUrl && state.currentChannel) {
+            seekToSavedOffsetIfAny(state.currentChannel);
+          }
+        });
+        hls.on(window.Hls.Events.LEVEL_SWITCHED, () => {
+          updateFsHudInfo();
+        });
+        hls.on(window.Hls.Events.ERROR, (_, data) => {
+          if (data.fatal) {
+            if (data.type === window.Hls.ErrorTypes.NETWORK_ERROR && networkRetries < 2) {
+              networkRetries++;
+              hls.startLoad();
+            } else if (data.type === window.Hls.ErrorTypes.MEDIA_ERROR) {
+              hls.recoverMediaError();
+            } else {
+              tryNativeFallback("DIRECT");
+            }
+          }
+        });
+        state.hlsInstance = hls;
+      } else if (isTsStream && window.mpegts && window.mpegts.isSupported()) {
+        const player = window.mpegts.createPlayer({
+          type: "mpegts",
+          isLive: true,
+          url: url
+        }, {
+          enableWorker: false,
+          stashInitialSize: 64 * 1024,
+          liveBufferLatencyChasing: false,
+          autoCleanupSourceBuffer: true,
+          autoCleanupMaxBackwardDuration: 30,
+          autoCleanupMinBackwardDuration: 10
+        });
+        player.attachMediaElement(videoEl);
+        player.load();
+        player.play().catch(() => {});
+        player.on(window.mpegts.Events.ERROR, () => {
+          tryNativeFallback("DIRECT");
+        });
+        state.mpegtsInstance = player;
+      } else {
+        videoEl.src = url;
+        videoEl.load();
+        videoEl.play().catch(() => {});
+        updateFsHudInfo();
+        if (!overrideUrl && state.currentChannel) {
+          seekToSavedOffsetIfAny(state.currentChannel);
+        }
+      }
+
+      startBufferGuard();
+    }
+
+    videoEl.addEventListener("playing", () => {
+      if (state.currentChannel) {
+        document.getElementById("nowPlayingSub").textContent = `Grup: ${state.currentChannel.category} • Yayın aktif`;
+      }
+      updateFsHudInfo();
+    });
+
+    videoEl.addEventListener("error", () => {
+      if (!videoEl.src) return;
+      if (state.currentChannel) {
+        document.getElementById("nowPlayingSub").textContent = `Grup: ${state.currentChannel.category} • Bağlantı/sunucu yanıt vermedi (yayın çevrimdışı veya kısıtlı olabilir)`;
+      }
+    });
+
+    function renderSavedPlaylists() {
+      const container = document.getElementById("savedPlaylistsContainer");
+      const countEl = document.getElementById("savedPlaylistsCount");
+      if (!container) return;
+      countEl.textContent = state.savedPlaylists.length;
+
+      if (state.savedPlaylists.length === 0) {
+        container.innerHTML = `<div style="font-size:0.8rem; color:var(--text-muted); padding:6px;">Henüz kayıtlı özel listeniz yok.</div>`;
+        return;
+      }
+
+      container.innerHTML = "";
+      state.savedPlaylists.forEach(pl => {
+        const isCurrent = pl.id === state.activePlaylistId;
+        const row = document.createElement("div");
+        row.style.cssText = `display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; border-radius:8px; background:${isCurrent ? "var(--accent-soft)" : "var(--bg-card)"}; border:1px solid ${isCurrent ? "var(--accent)" : "var(--border)"};`;
+
+        row.innerHTML = `
+          <div style="min-width:0; flex:1;">
+            <div style="font-size:0.84rem; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+              ${isCurrent ? "✅ " : "📁 "}${pl.name}
+            </div>
+            <div style="font-size:0.72rem; color:var(--text-muted);">
+              📺 ${pl.liveCount} Kanal • 🎬 ${pl.movieCount} Film • 🎞️ ${pl.seriesCount} Dizi
+            </div>
+          </div>
+          <div style="display:flex; gap:6px; flex-shrink:0;">
+            <button type="button" class="btn focusable btn-switch-pl" style="padding:5px 9px; font-size:0.75rem; ${isCurrent ? "background:var(--accent); color:#fff;" : ""}">
+              ${isCurrent ? "Aktif" : "Geçiş Yap"}
+            </button>
+            <button type="button" class="btn focusable btn-del-pl" style="padding:5px 8px; font-size:0.75rem; border-color:var(--danger); color:#fca5a5;">🗑</button>
+          </div>
+        `;
+
+        row.querySelector(".btn-switch-pl").addEventListener("click", () => switchToPlaylist(pl.id));
+        row.querySelector(".btn-del-pl").addEventListener("click", () => {
+          state.savedPlaylists = state.savedPlaylists.filter(item => item.id !== pl.id);
+          if (state.activePlaylistId === pl.id) {
+            state.activePlaylistId = "demo";
+            state.channels = [...DEMO_CHANNELS];
+            state.vodItems = [...DEMO_VOD];
+            state.selectedCategory = "Tümü";
+            renderCategories();
+            renderChannels();
+            if (state.channels[0]) playStream(state.channels[0].url, state.channels[0].name, "Grup: " + state.channels[0].category, state.channels[0]);
+          }
+          saveData();
+          renderSavedPlaylists();
+          showToast("Liste silindi.", "info");
+        });
+
+        container.appendChild(row);
+      });
+    }
+
+    function switchToPlaylist(playlistId) {
+      const target = state.savedPlaylists.find(p => p.id === playlistId);
+      if (!target) return;
+      state.activePlaylistId = target.id;
+      state.channels = target.channels || [];
+      state.vodItems = target.vodItems || [];
+      state.selectedCategory = "Tümü";
+      state.selectedVodCategory = "Tümü";
+      state.channelPage = 1;
+      state.vodPage = 1;
+      saveData();
+      renderSavedPlaylists();
+      renderCategories();
+      renderChannels();
+      renderFsDrawer();
+      if (state.activeTab !== "live") renderVodSection();
+      if (state.channels.length > 0) {
+        playStream(state.channels[0].url, state.channels[0].name, "Grup: " + state.channels[0].category, state.channels[0]);
+      }
+      playlistModal.classList.remove("open");
+      showToast(`"${target.name}" listesine geçildi`, "success");
+    }
+
+    async function parseM3UContentAsync(rawText, onProgress) {
+      const lines = rawText.split(/\r?\n/);
+      const totalLines = lines.length;
+      const parsedChannels = [];
+      const parsedVod = [];
+      let liveCount = 0;
+      let movieCount = 0;
+      let seriesCount = 0;
+      let currentMeta = null;
+      const CHUNK_SIZE = 4500;
+
+      for (let i = 0; i < totalLines; i++) {
+        const line = lines[i].trim();
+        if (line) {
+          if (line.startsWith("#EXTINF:")) {
+            const logoMatch = line.match(/tvg-logo="([^"]*)"/i);
+            const groupMatch = line.match(/group-title="([^"]*)"/i);
+            const catchupMatch = line.match(/catchup="([^"]*)"/i);
+            const catchupDaysMatch = line.match(/catchup-days="([^"]*)"/i);
+            const catchupSourceMatch = line.match(/catchup-source="([^"]*)"/i);
+            const timeshiftMatch = line.match(/timeshift="([^"]*)"/i);
+            const commaIndex = line.lastIndexOf(",");
+            const title = commaIndex !== -1 ? line.substring(commaIndex + 1).trim() : "İsimsiz Kanal";
+
+            const hasCatchupAttr = Boolean(
+              (catchupMatch && catchupMatch[1] && catchupMatch[1].toLowerCase() !== "no" && catchupMatch[1].toLowerCase() !== "default") ||
+              (catchupDaysMatch && Number(catchupDaysMatch[1]) > 0) ||
+              (catchupSourceMatch && catchupSourceMatch[1]) ||
+              (timeshiftMatch && Number(timeshiftMatch[1]) > 0)
+            );
+
+            currentMeta = {
+              name: title || "İsimsiz Kanal",
+              category: (groupMatch && groupMatch[1].trim()) ? groupMatch[1].trim() : "Genel",
+              logo: (logoMatch && logoMatch[1].trim()) ? logoMatch[1].trim() : "",
+              catchup: hasCatchupAttr,
+              catchupDays: catchupDaysMatch ? Number(catchupDaysMatch[1]) || 0 : (timeshiftMatch ? Number(timeshiftMatch[1]) || 0 : 0),
+              catchupSource: (catchupSourceMatch && catchupSourceMatch[1]) ? catchupSourceMatch[1].trim() : ""
+            };
+          } else if (!line.startsWith("#") && /^https?:\/\//i.test(line)) {
+            const url = line;
+            const catAndName = ((currentMeta?.category || "") + " " + (currentMeta?.name || "")).toLowerCase();
+            const isSeries = /dizi|series|sezon|bölüm|s\d{1,2}e\d{1,2}|\/series\//i.test(catAndName) || /\/series\//i.test(url);
+            const isMovie = !isSeries && (/\.(mp4|mkv|avi|mov)$/i.test(url) || /film|movie|vod|sinema|\/movie\//i.test(catAndName));
+
+            if (isSeries || isMovie) {
+              const itemType = isSeries ? "series" : "movies";
+              if (isSeries) seriesCount++;
+              else movieCount++;
+
+              parsedVod.push({
+                id: "v" + parsedVod.length,
+                type: itemType,
+                title: currentMeta ? currentMeta.name : "VOD İçerik",
+                category: currentMeta ? currentMeta.category : (isSeries ? "Diziler" : "Filmler"),
+                poster: currentMeta ? currentMeta.logo : "",
+                url: url
+              });
+            } else {
+              liveCount++;
+              parsedChannels.push({
+                id: "c" + parsedChannels.length,
+                name: currentMeta ? currentMeta.name : `Kanal ${parsedChannels.length + 1}`,
+                category: currentMeta ? currentMeta.category : "Genel",
+                logo: currentMeta ? currentMeta.logo : "",
+                url: url,
+                catchup: currentMeta ? currentMeta.catchup : false,
+                catchupDays: currentMeta ? currentMeta.catchupDays : 0,
+                catchupSource: currentMeta ? currentMeta.catchupSource : ""
+              });
+            }
+            currentMeta = null;
+          }
+        }
+
+        if (i > 0 && i % CHUNK_SIZE === 0) {
+          const pct = Math.min(99, Math.round((i / totalLines) * 100));
+          if (onProgress) onProgress({ pct, liveCount, movieCount, seriesCount });
+          await new Promise(r => setTimeout(r, 0));
+        }
+      }
+
+      if (onProgress) onProgress({ pct: 100, liveCount, movieCount, seriesCount });
+      return { parsedChannels, parsedVod, liveCount, movieCount, seriesCount };
+    }
+
+    function updateImportProgressUI(visible, statusText = "", pct = 0, live = 0, movies = 0, series = 0) {
+      const box = document.getElementById("importProgressBox");
+      if (!box) return;
+      box.style.display = visible ? "block" : "none";
+      if (!visible) return;
+      document.getElementById("importStatusTitle").textContent = statusText;
+      document.getElementById("importPercentText").textContent = `${pct}%`;
+      document.getElementById("importProgressBar").style.width = `${pct}%`;
+      document.getElementById("liveCountLive").textContent = live.toLocaleString("tr-TR");
+      document.getElementById("liveCountMovies").textContent = movies.toLocaleString("tr-TR");
+      document.getElementById("liveCountSeries").textContent = series.toLocaleString("tr-TR");
+    }
+
+    async function applyParsedPlaylist(rawText, playlistName = "Yeni Oynatma Listesi") {
+      updateImportProgressUI(true, "İçerikler ayrıştırılıyor...", 30, 0, 0, 0);
+
+      const { parsedChannels, parsedVod, liveCount, movieCount, seriesCount } = await parseM3UContentAsync(
+        rawText,
+        ({ pct, liveCount, movieCount, seriesCount }) => {
+          const scaledPct = Math.min(98, 30 + Math.round(pct * 0.68));
+          updateImportProgressUI(
+            true,
+            `İşleniyor... (${liveCount} Kanal, ${movieCount} Film, ${seriesCount} Dizi)`,
+            scaledPct,
+            liveCount,
+            movieCount,
+            seriesCount
+          );
+        }
+      );
+
+      if (parsedChannels.length === 0 && parsedVod.length === 0) {
+        updateImportProgressUI(false);
+        showToast("Geçerli içerik bulunamadı.", "error");
+        return;
+      }
+
+      updateImportProgressUI(
+        true,
+        `Tamamlandı! ${liveCount} Kanal, ${movieCount} Film, ${seriesCount} Dizi`,
+        100,
+        liveCount,
+        movieCount,
+        seriesCount
+      );
+
+      const newPlId = "pl-" + Date.now();
+      state.savedPlaylists.unshift({
+        id: newPlId,
+        name: playlistName,
+        liveCount,
+        movieCount,
+        seriesCount,
+        channels: parsedChannels,
+        vodItems: parsedVod
+      });
+      if (state.savedPlaylists.length > MAX_SAVED_PLAYLISTS) {
+        state.savedPlaylists.length = MAX_SAVED_PLAYLISTS;
+      }
+
+      state.activePlaylistId = newPlId;
+      state.channels = parsedChannels;
+      state.vodItems = parsedVod;
+      state.selectedCategory = "Tümü";
+      state.fsDrawerCategory = "Tümü";
+      state.selectedVodCategory = "Tümü";
+      state.channelPage = 1;
+      state.vodPage = 1;
+
+      saveData();
+      renderSavedPlaylists();
+      renderCategories();
+      renderChannels();
+      renderFsDrawer();
+      if (state.activeTab !== "live") renderVodSection();
+      if (state.channels.length > 0) {
+        playStream(state.channels[0].url, state.channels[0].name, "Grup: " + state.channels[0].category, state.channels[0]);
+      }
+
+      document.getElementById("playlistNameInput").value = "";
+      showToast(`"${playlistName}" yüklendi`, "success");
+
+      setTimeout(() => {
+        updateImportProgressUI(false);
+        playlistModal.classList.remove("open");
+      }, 650);
+    }
+
+    function getFilteredChannels() {
+      return state.channels.filter(ch => {
+        const matchesCat =
+          state.selectedCategory === "Tümü" ||
+          (state.selectedCategory === "Favoriler" ? state.favorites.has(ch.url) : ch.category === state.selectedCategory);
+        const matchesSearch =
+          !state.searchQuery ||
+          ch.name.toLowerCase().includes(state.searchQuery) ||
+          ch.category.toLowerCase().includes(state.searchQuery);
+        return matchesCat && matchesSearch;
+      });
+    }
+
+    function renderCategories() {
+      const groupListEl = document.getElementById("groupList");
+      const cats = ["Tümü", "Favoriler", ...new Set(state.channels.map(c => c.category))];
+      document.getElementById("groupCount").textContent = cats.length;
+
+      const visibleCats = cats.slice(0, 200);
+      groupListEl.innerHTML = visibleCats.map(cat =>
+        `<div tabindex="0" class="list-item focusable ${state.selectedCategory === cat ? "active" : ""}" data-cat="${encodeURIComponent(cat)}">
+          <div class="channel-name">${cat === "Favoriler" ? "★ Favoriler" : cat}</div>
+        </div>`
+      ).join("");
+
+      groupListEl.querySelectorAll(".list-item").forEach(el => {
+        el.addEventListener("click", () => {
+          state.selectedCategory = decodeURIComponent(el.dataset.cat);
+          state.channelPage = 1;
+          renderCategories();
+          renderChannels();
+        });
+      });
+    }
+
+    function renderChannels() {
+      const listEl = document.getElementById("channelList");
+      const pagerEl = document.getElementById("channelPager");
+      const channels = getFilteredChannels();
+      document.getElementById("channelCount").textContent = channels.length;
+
+      if (!channels.length) {
+        listEl.innerHTML = `<div class="empty-state">Bu filtrede kanal bulunamadı.</div>`;
+        if (pagerEl) pagerEl.style.display = "none";
+        return;
+      }
+
+      const totalPages = Math.max(1, Math.ceil(channels.length / state.pageSize));
+      if (state.channelPage > totalPages) state.channelPage = totalPages;
+      const startIdx = (state.channelPage - 1) * state.pageSize;
+      const pageItems = channels.slice(startIdx, startIdx + state.pageSize);
+
+      if (pagerEl) {
+        pagerEl.style.display = totalPages > 1 ? "flex" : "none";
+        document.getElementById("pageInfoText").textContent = `${state.channelPage} / ${totalPages}`;
+      }
+
+      listEl.innerHTML = pageItems.map((ch, localIdx) => {
+        const globalIdx = startIdx + localIdx;
+        const active = state.currentChannel && state.currentChannel.url === ch.url && state.currentChannel.name === ch.name;
+        const logoHtml = ch.logo
+          ? `<img class="channel-logo" loading="lazy" decoding="async" src="${ch.logo}" alt="" onerror="this.onerror=null; this.remove();" />`
+          : `<div class="channel-logo" style="display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:var(--text-muted);">TV</div>`;
+        return `
+          <div tabindex="0" class="list-item focusable ${active ? "active" : ""}" data-idx="${localIdx}">
+            <div class="channel-left">
+              <span style="font-size:0.74rem; color:var(--text-muted); min-width:24px;">${globalIdx + 1}</span>
+              ${logoHtml}
+              <div class="channel-meta">
+                <div class="channel-name">${ch.name}</div>
+                <div class="channel-sub">${ch.category}</div>
+              </div>
+            </div>
+            ${state.favorites.has(ch.url) ? '<span style="color:#facc15;">★</span>' : (ch.catchup ? '<span class="badge-catchup">GERİ AL</span>' : '')}
+          </div>
+        `;
+      }).join("");
+
+      listEl.scrollTop = 0;
+      listEl.querySelectorAll(".list-item").forEach(el => {
+        const ch = pageItems[Number(el.dataset.idx)];
+        el.addEventListener("click", () => playStream(ch.url, ch.name, "Grup: " + ch.category, ch));
+        el.addEventListener("dblclick", () => {
+          playStream(ch.url, ch.name, "Grup: " + ch.category, ch);
+          enterFullscreen();
+        });
+      });
+    }
+
+    function renderFsDrawer() {
+      const groupsEl = document.getElementById("fsDrawerGroups");
+      const drawerList = document.getElementById("fsDrawerList");
+      const cats = ["Tümü", ...new Set(state.channels.map(c => c.category))].slice(0, 120);
+
+      groupsEl.innerHTML = cats.map(cat =>
+        `<div tabindex="0" class="fs-drawer-item focusable ${state.fsDrawerCategory === cat ? "active" : ""}" data-fscat="${encodeURIComponent(cat)}">
+          <div class="channel-name" style="font-size:0.84rem;">${cat}</div>
+        </div>`
+      ).join("");
+
+      groupsEl.querySelectorAll(".fs-drawer-item").forEach(el => {
+        el.addEventListener("click", (e) => {
+          e.stopPropagation();
+          state.fsDrawerCategory = decodeURIComponent(el.dataset.fscat);
+          renderFsDrawer();
+        });
+      });
+
+      const list = (state.fsDrawerCategory === "Tümü"
+        ? state.channels
+        : state.channels.filter(c => c.category === state.fsDrawerCategory)).slice(0, 100);
+
+      drawerList.innerHTML = list.map((ch, idx) => {
+        const active = state.currentChannel && state.currentChannel.url === ch.url;
+        const logoHtml = ch.logo
+          ? `<img class="channel-logo" loading="lazy" decoding="async" src="${ch.logo}" alt="" onerror="this.onerror=null; this.remove();" />`
+          : `<div class="channel-logo" style="display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:var(--text-muted);">TV</div>`;
+        return `
+          <div tabindex="0" class="fs-drawer-item focusable ${active ? "active" : ""}" data-fsidx="${idx}">
+            ${logoHtml}
+            <div class="channel-meta">
+              <div class="channel-name">${ch.name}</div>
+              <div class="channel-sub">${ch.category}</div>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      drawerList.querySelectorAll(".fs-drawer-item").forEach(el => {
+        el.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const ch = list[Number(el.dataset.fsidx)];
+          playStream(ch.url, ch.name, "Grup: " + ch.category, ch);
+        });
+      });
+    }
+
+    function renderEpg() {
+      const epgListEl = document.getElementById("epgList");
+      const ch = state.currentChannel;
+      if (!ch) {
+        epgListEl.innerHTML = `<div class="empty-state">Kanal seçildiğinde yayın akışı burada görünür.</div>`;
+        return;
+      }
+
+      const now = new Date();
+      const programs = [
+        { offset: -1, title: "Önceki Program (Arşiv)", live: false },
+        { offset: 0, title: ch.name + " - Canlı Yayın", live: true },
+        { offset: 1, title: "Sonraki Yayın Kuşağı", live: false }
+      ];
+
+      epgListEl.innerHTML = programs.map(p => {
+        const start = new Date(now.getTime() + p.offset * 3600000);
+        const end = new Date(start.getTime() + 3600000);
+        const timeStr = start.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" }) + " - " + end.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" });
+        return `
+          <div class="epg-item ${p.live ? "live" : ""}">
+            <div>
+              <div class="epg-time">${timeStr}${p.live ? " • ŞİMDİ" : ""}</div>
+              <div style="font-weight:600; margin-top:2px;">${p.title}</div>
+            </div>
+            ${(!p.live && p.offset < 0 && ch.catchup) ? `<button type="button" class="btn-replay focusable" onclick="jumpToCatchup(60)">Geri Al</button>` : ""}
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderVodSection() {
+      const type = state.activeTab;
+      const itemsOfType = state.vodItems.filter(v => v.type === type);
+      const cats = ["Tümü", ...new Set(itemsOfType.map(v => v.category))].slice(0, 150);
+      const vodGroupEl = document.getElementById("vodGroupList");
+      const vodGridEl = document.getElementById("vodGrid");
+      const vodPagerEl = document.getElementById("vodPager");
+
+      document.getElementById("vodGroupTitle").textContent = type === "movies" ? "Film Kategorileri" : "Dizi Kategorileri";
+      document.getElementById("vodGroupCount").textContent = cats.length;
+      document.getElementById("vodItemsTitle").textContent = type === "movies" ? "Filmler" : "Diziler";
+
+      vodGroupEl.innerHTML = cats.map(cat =>
+        `<div tabindex="0" class="list-item focusable ${state.selectedVodCategory === cat ? "active" : ""}" data-vcat="${encodeURIComponent(cat)}">
+          <div class="channel-name">${cat}</div>
+        </div>`
+      ).join("");
+
+      vodGroupEl.querySelectorAll(".list-item").forEach(el => {
+        el.addEventListener("click", () => {
+          state.selectedVodCategory = decodeURIComponent(el.dataset.vcat);
+          state.vodPage = 1;
+          renderVodSection();
+        });
+      });
+
+      const filtered = itemsOfType.filter(v => {
+        const matchCat = state.selectedVodCategory === "Tümü" || v.category === state.selectedVodCategory;
+        const matchSearch = !state.searchQuery || v.title.toLowerCase().includes(state.searchQuery);
+        return matchCat && matchSearch;
+      });
+
+      document.getElementById("vodItemsCount").textContent = filtered.length;
+
+      if (!filtered.length) {
+        vodGridEl.innerHTML = `<div class="empty-state">Gösterilecek içerik bulunamadı.</div>`;
+        if (vodPagerEl) vodPagerEl.style.display = "none";
+        return;
+      }
+
+      const vodPageSize = 60;
+      const totalPages = Math.max(1, Math.ceil(filtered.length / vodPageSize));
+      if (state.vodPage > totalPages) state.vodPage = totalPages;
+      const startIdx = (state.vodPage - 1) * vodPageSize;
+      const pageVod = filtered.slice(startIdx, startIdx + vodPageSize);
+
+      if (vodPagerEl) {
+        vodPagerEl.style.display = totalPages > 1 ? "flex" : "none";
+        document.getElementById("vodPageInfoText").textContent = `${state.vodPage} / ${totalPages}`;
+      }
+
+      vodGridEl.innerHTML = pageVod.map((item, localIdx) =>
+        `<div tabindex="0" class="vod-card focusable" data-vidx="${localIdx}">
+          ${item.poster
+            ? `<img class="vod-poster" loading="lazy" decoding="async" src="${item.poster}" alt="${item.title}" onerror="this.onerror=null; this.replaceWith(Object.assign(document.createElement('div'),{className:'vod-poster',style:'display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:0.85rem;',textContent:'VOD'}));" />`
+            : `<div class="vod-poster" style="display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:0.85rem;">VOD</div>`}
+          <div class="vod-title">${item.title}</div>
+        </div>`
+      ).join("");
+
+      vodGridEl.scrollTop = 0;
+      vodGridEl.querySelectorAll(".vod-card").forEach(card => {
+        card.addEventListener("click", () => {
+          const item = pageVod[Number(card.dataset.vidx)];
+          switchSection("live");
+          playStream(item.url, item.title, (type === "movies" ? "Film (VOD)" : "Dizi") + " • " + item.category);
+        });
+      });
+    }
+
+    function switchSection(sec) {
+      state.activeTab = sec;
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.section === sec));
+      const isLive = sec === "live";
+      document.getElementById("liveWorkspace").style.display = isLive ? "grid" : "none";
+      document.getElementById("vodWorkspace").style.display = isLive ? "none" : "grid";
+      if (!isLive) renderVodSection();
+    }
+
+    function isFullscreenActive() {
+      return Boolean(
+        document.fullscreenElement ||
+        document.webkitFullscreenElement ||
+        videoBox.classList.contains("pseudo-fullscreen")
+      );
+    }
+
+    function enterFullscreen() {
+      if (isFullscreenActive()) return;
+      const req = videoBox.requestFullscreen || videoBox.webkitRequestFullscreen;
+      if (req) {
+        try {
+          const p = req.call(videoBox);
+          if (p && typeof p.catch === "function") p.catch(() => videoBox.classList.add("pseudo-fullscreen"));
+        } catch (e) {
+          videoBox.classList.add("pseudo-fullscreen");
+        }
+      } else {
+        videoBox.classList.add("pseudo-fullscreen");
+      }
+    }
+
+    function exitFullscreen() {
+      hideFsHud();
+      videoBox.classList.remove("pseudo-fullscreen");
+      if (state.lastLiveSession) {
+        state.lastLiveSession.wasFullscreen = false;
+        try { localStorage.setItem("tvmate_last_live_session", JSON.stringify(state.lastLiveSession)); } catch (e) {}
+      }
+      const exitReq = document.exitFullscreen || document.webkitExitFullscreen;
+      if (exitReq && (document.fullscreenElement || document.webkitFullscreenElement)) {
+        try {
+          const p = exitReq.call(document);
+          if (p && typeof p.catch === "function") p.catch(() => {});
+        } catch (e) {}
+      }
+    }
+
+    function toggleFullscreen() {
+      if (isFullscreenActive()) exitFullscreen();
+      else {
+        enterFullscreen();
+        showFsHud(4500);
+        if (state.lastLiveSession) {
+          state.lastLiveSession.wasFullscreen = true;
+          try { localStorage.setItem("tvmate_last_live_session", JSON.stringify(state.lastLiveSession)); } catch (e) {}
+        }
+      }
+    }
+
+    function moveSpatialFocus(direction) {
+      const focusables = Array.from(document.querySelectorAll(".focusable")).filter(el => {
+        const r = el.getBoundingClientRect();
+        if (r.width <= 0 || r.height <= 0) return false;
+        const style = window.getComputedStyle(el);
+        if (style.display === "none" || style.visibility === "hidden") return false;
+        if (playlistModal.classList.contains("open")) return Boolean(el.closest("#playlistModal"));
+        if (vpnModal.classList.contains("open")) return Boolean(el.closest("#vpnModal"));
+        if (isFullscreenActive() && fsDrawer.classList.contains("open")) return Boolean(el.closest("#fsChannelDrawer"));
+        return true;
+      });
+
+      if (!focusables.length) return;
+      const active = document.activeElement;
+      if (!active || !focusables.includes(active)) {
+        const preferred = document.querySelector(".list-item.active.focusable") || focusables[0];
+        preferred.focus({ preventScroll: true });
+        preferred.scrollIntoView({ block: "nearest", inline: "nearest" });
+        return;
+      }
+
+      const rect = active.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      let best = null;
+      let bestScore = Infinity;
+
+      for (const el of focusables) {
+        if (el === active) continue;
+        const r = el.getBoundingClientRect();
+        const dx = (r.left + r.width / 2) - cx;
+        const dy = (r.top + r.height / 2) - cy;
+
+        if (direction === "ArrowRight" && dx <= 6) continue;
+        if (direction === "ArrowLeft" && dx >= -6) continue;
+        if (direction === "ArrowDown" && dy <= 6) continue;
+        if (direction === "ArrowUp" && dy >= -6) continue;
+
+        const score = (direction === "ArrowLeft" || direction === "ArrowRight")
+          ? Math.abs(dx) + Math.abs(dy) * 1.8
+          : Math.abs(dy) + Math.abs(dx) * 1.8;
+
+        if (score < bestScore) {
+          bestScore = score;
+          best = el;
+        }
+      }
+
+      if (!best) {
+        const curIdx = focusables.indexOf(active);
+        const step = (direction === "ArrowRight" || direction === "ArrowDown") ? 1 : -1;
+        const fallbackEl = focusables[(curIdx + step + focusables.length) % focusables.length];
+        if (fallbackEl && fallbackEl !== active) best = fallbackEl;
+      }
+
+      if (best) {
+        document.querySelectorAll(".tv-focused").forEach(e => e.classList.remove("tv-focused"));
+        best.classList.add("tv-focused");
+        best.focus({ preventScroll: true });
+        best.scrollIntoView({ block: "nearest", inline: "nearest" });
+      }
+    }
+
+    function stepLiveChannelBy(delta) {
+      const list = getFilteredChannels();
+      if (!list.length) return;
+      const curIdx = state.currentChannel ? list.findIndex(c => c.url === state.currentChannel.url) : -1;
+      const nextIdx = (curIdx + delta + list.length) % list.length;
+      const nextCh = list[nextIdx];
+      playStream(nextCh.url, nextCh.name, "Grup: " + nextCh.category, nextCh);
+    }
+
+    document.addEventListener("keydown", (e) => {
+      const active = document.activeElement;
+      const isInput = active && (active.tagName === "INPUT" || active.tagName === "TEXTAREA");
+      const isFs = isFullscreenActive();
+      const key = e.key;
+      const code = e.keyCode || e.which;
+
+      const isBackKey = (
+        key === "Escape" ||
+        key === "Backspace" ||
+        key === "BrowserBack" ||
+        key === "GoBack" ||
+        code === 4 ||
+        code === 461
+      );
+
+      if (isBackKey) {
+        if (isInput && key === "Backspace") return;
+        e.preventDefault();
+        if (playlistModal.classList.contains("open")) {
+          playlistModal.classList.remove("open");
+        } else if (vpnModal.classList.contains("open")) {
+          vpnModal.classList.remove("open");
+        } else if (isFs && fsDrawer.classList.contains("open")) {
+          fsDrawer.classList.remove("open");
+        } else if (isFs) {
+          exitFullscreen();
+        } else if (active && active !== document.body && !active.classList.contains("list-item")) {
+          const firstCh = document.querySelector("#channelList .list-item.focusable");
+          if (firstCh) firstCh.focus({ preventScroll: true });
+          else active.blur();
+        }
+        return;
+      }
+
+      if (!isInput && /^[0-9]$/.test(key)) {
+        state.dialBuffer += key;
+        const dialEl = document.getElementById("numDialOsd");
+        dialEl.textContent = "CH " + state.dialBuffer;
+        dialEl.style.display = "block";
+        clearTimeout(state.dialTimer);
+        state.dialTimer = setTimeout(() => {
+          const idx = parseInt(state.dialBuffer, 10) - 1;
+          const list = getFilteredChannels();
+          state.dialBuffer = "";
+          dialEl.style.display = "none";
+          if (idx >= 0 && idx < list.length) {
+            const ch = list[idx];
+            playStream(ch.url, ch.name, "Grup: " + ch.category, ch);
+          }
+        }, 1200);
+        return;
+      }
+
+      if (key === "ChannelUp" || key === "MediaTrackPrevious" || code === 166) {
+        e.preventDefault();
+        stepLiveChannelBy(-1);
+        return;
+      }
+      if (key === "ChannelDown" || key === "MediaTrackNext" || code === 167) {
+        e.preventDefault();
+        stepLiveChannelBy(1);
+        return;
+      }
+
+      if (key === "MediaPlayPause" || key === "MediaPlay" || key === "MediaPause" || code === 179 || code === 85) {
+        e.preventDefault();
+        if (videoEl.paused) videoEl.play().catch(() => {});
+        else videoEl.pause();
+        return;
+      }
+
+      if (isInput) return;
+
+      const isSelectKey = (
+        key === "Enter" ||
+        key === "NumpadEnter" ||
+        key === "Select" ||
+        code === 23 ||
+        code === 66
+      );
+      if (isSelectKey && active && active.classList.contains("focusable")) {
+        if (active.tagName !== "BUTTON") {
+          e.preventDefault();
+          active.click();
+          return;
+        }
+      }
+
+      if (isFs && !fsDrawer.classList.contains("open")) {
+        const list = getFilteredChannels();
+        if (list.length > 0 && (key === "ArrowUp" || key === "ArrowDown" || code === 19 || code === 20)) {
+          e.preventDefault();
+          stepLiveChannelBy((key === "ArrowDown" || code === 20) ? 1 : -1);
+          return;
+        }
+      }
+
+      let navDir = null;
+      if (key === "ArrowUp" || code === 19) navDir = "ArrowUp";
+      else if (key === "ArrowDown" || code === 20) navDir = "ArrowDown";
+      else if (key === "ArrowLeft" || code === 21) navDir = "ArrowLeft";
+      else if (key === "ArrowRight" || code === 22) navDir = "ArrowRight";
+
+      if (navDir) {
+        if (isFs) showFsHud(4500);
+        e.preventDefault();
+        moveSpatialFocus(navDir);
+      } else if (key === "f" || key === "F") {
+        e.preventDefault();
+        toggleFullscreen();
+      } else if ((key === "c" || key === "C") && isFs) {
+        e.preventDefault();
+        fsDrawer.classList.toggle("open");
+      } else if (key === " ") {
+        e.preventDefault();
+        videoEl.paused ? videoEl.play() : videoEl.pause();
+        if (isFs) showFsHud(4200);
+      } else if (key === "m" || key === "M") {
+        e.preventDefault();
+        videoEl.muted = !videoEl.muted;
+        updateFsHudInfo();
+        showToast(videoEl.muted ? "Ses Kapatıldı" : "Ses Açıldı", "info");
+      }
+    });
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        try { videoEl.pause(); } catch (e) {}
+        if (state.hlsInstance) {
+          try { state.hlsInstance.stopLoad(); } catch (e) {}
+        }
+        if (state.mpegtsInstance) {
+          try { state.mpegtsInstance.pause(); } catch (e) {}
+        }
+      } else if (state.currentChannel) {
+        if (state.hlsInstance) {
+          try {
+            state.hlsInstance.startLoad();
+            if (typeof state.hlsInstance.liveSyncPosition === "number" && state.hlsInstance.liveSyncPosition > 0) {
+              videoEl.currentTime = state.hlsInstance.liveSyncPosition;
+            }
+          } catch (e) {}
+        }
+        if (state.mpegtsInstance) {
+          try { state.mpegtsInstance.play(); } catch (e) {}
+        }
+        videoEl.play().catch(() => {});
+      }
+    });
+
+    document.getElementById("favToggleBtn").addEventListener("click", () => {
+      if (!state.currentChannel || !state.currentChannel.url) {
+        showToast("Önce bir kanal seçin.", "error");
+        return;
+      }
+      const url = state.currentChannel.url;
+      if (state.favorites.has(url)) {
+        state.favorites.delete(url);
+        showToast("Favorilerden çıkarıldı.", "info");
+      } else {
+        if (state.favorites.size >= MAX_FAVORITES) {
+          const oldest = state.favorites.values().next().value;
+          state.favorites.delete(oldest);
+        }
+        state.favorites.add(url);
+        showToast("Favorilere eklendi.", "success");
+      }
+      updateFavBtnUI();
+      saveData();
+      if (state.activeTab === "live") {
+        renderChannels();
+      }
+    });
+
+    document.getElementById("fullscreenBtn").addEventListener("click", toggleFullscreen);
+    document.getElementById("headerFullscreenBtn").addEventListener("click", toggleFullscreen);
+    videoEl.addEventListener("dblclick", toggleFullscreen);
+
+    videoBox.addEventListener("mousemove", () => {
+      if (isFullscreenActive()) showFsHud(4200);
+    });
+    videoBox.addEventListener("touchstart", () => {
+      if (isFullscreenActive()) showFsHud(4500);
+    }, { passive: true });
+    videoEl.addEventListener("loadedmetadata", updateFsHudInfo);
+    videoEl.addEventListener("playing", updateFsHudInfo);
+    videoEl.addEventListener("pause", updateFsHudInfo);
+    videoEl.addEventListener("timeupdate", () => {
+      if (isFullscreenActive() && videoBox.classList.contains("fs-hud-visible")) {
+        updateFsHudInfo();
+      }
+    });
+
+    document.getElementById("fsPlayPauseBtn").addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (videoEl.paused) videoEl.play().catch(() => {});
+      else videoEl.pause();
+      showFsHud(4200);
+    });
+    document.getElementById("fsRewind15Btn").addEventListener("click", (e) => {
+      e.stopPropagation();
+      stepRelativeSeconds(-15);
+      showFsHud(4200);
+    });
+    document.getElementById("fsForward15Btn").addEventListener("click", (e) => {
+      e.stopPropagation();
+      stepRelativeSeconds(15);
+      showFsHud(4200);
+    });
+    document.getElementById("fsBack30Btn").addEventListener("click", (e) => {
+      e.stopPropagation();
+      jumpToCatchup(30);
+      showFsHud(4200);
+    });
+    document.getElementById("fsLiveBtn").addEventListener("click", (e) => {
+      e.stopPropagation();
+      document.getElementById("jumpLiveBtn").click();
+      showFsHud(4200);
+    });
+    document.getElementById("fsMuteBtn").addEventListener("click", (e) => {
+      e.stopPropagation();
+      videoEl.muted = !videoEl.muted;
+      updateFsHudInfo();
+      showFsHud(4200);
+    });
+    document.getElementById("fsExitBtn").addEventListener("click", (e) => {
+      e.stopPropagation();
+      exitFullscreen();
+    });
+
+    document.getElementById("jumpLiveBtn").addEventListener("click", () => {
+      if (!state.currentChannel) {
+        showToast("Önce bir kanal seçin.", "error");
+        return;
+      }
+      const key = getChannelMemoryKey(state.currentChannel);
+      delete state.channelPlaybackMemory[key];
+      if (state.hlsInstance && typeof state.hlsInstance.liveSyncPosition === "number" && state.hlsInstance.liveSyncPosition > 0) {
+        try {
+          videoEl.currentTime = state.hlsInstance.liveSyncPosition;
+          if (state.hlsInstance) {
+            try { state.hlsInstance.startLoad(state.hlsInstance.liveSyncPosition); } catch (e) {}
+          }
+          videoEl.play().catch(() => {});
+          document.getElementById("nowPlayingSub").textContent = "Grup: " + state.currentChannel.category + " • Canlı yayın";
+          showToast("Canlı yayına dönüldü.", "success");
+          return;
+        } catch (e) {}
+      }
+      playStream(state.currentChannel.url, state.currentChannel.name, "Grup: " + state.currentChannel.category, state.currentChannel);
+    });
+
+    document.getElementById("stepBack15Btn").addEventListener("click", () => stepRelativeSeconds(-15));
+    document.getElementById("stepFwd15Btn").addEventListener("click", () => stepRelativeSeconds(15));
+
+    document.querySelectorAll("[data-back-minutes]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const mins = Number(btn.getAttribute("data-back-minutes") || 0);
+        if (mins > 0) jumpToCatchup(mins);
+      });
+    });
+
+    document.getElementById("fsToggleDrawerBtn").addEventListener("click", (e) => {
+      e.stopPropagation();
+      const willOpen = !fsDrawer.classList.contains("open");
+      fsDrawer.classList.toggle("open", willOpen);
+      if (willOpen) {
+        renderFsDrawer();
+        const firstDrawerItem = fsDrawer.querySelector(".fs-drawer-item.focusable");
+        if (firstDrawerItem) firstDrawerItem.focus({ preventScroll: true });
+      }
+    });
+
+    document.getElementById("fsCloseDrawerBtn").addEventListener("click", (e) => {
+      e.stopPropagation();
+      fsDrawer.classList.remove("open");
+      const toggleBtn = document.getElementById("fsToggleDrawerBtn");
+      if (toggleBtn) toggleBtn.focus({ preventScroll: true });
+    });
+
+    document.addEventListener("fullscreenchange", () => {
+      const activeFs = isFullscreenActive();
+      if (!activeFs) {
+        fsDrawer.classList.remove("open");
+        hideFsHud();
+      } else {
+        showFsHud(4500);
+      }
+      if (state.lastLiveSession) {
+        state.lastLiveSession.wasFullscreen = activeFs;
+        try { localStorage.setItem("tvmate_last_live_session", JSON.stringify(state.lastLiveSession)); } catch (e) {}
+      }
+    });
+
+    document.addEventListener("webkitfullscreenchange", () => {
+      const activeFs = isFullscreenActive();
+      if (!activeFs) {
+        fsDrawer.classList.remove("open");
+        hideFsHud();
+      } else {
+        showFsHud(4500);
+      }
+      if (state.lastLiveSession) {
+        state.lastLiveSession.wasFullscreen = activeFs;
+        try { localStorage.setItem("tvmate_last_live_session", JSON.stringify(state.lastLiveSession)); } catch (e) {}
+      }
+    });
+
+    window.addEventListener("pagehide", () => {
+      saveChannelPlaybackSnapshot(state.currentChannel);
+      saveData();
+      destroyCurrentPlayer();
+    });
+
+    function syncViewportLayout() {
+      const active = document.activeElement;
+      if (active && active.classList && active.classList.contains("focusable")) {
+        active.scrollIntoView({ block: "nearest", inline: "nearest" });
+      }
+    }
+    window.addEventListener("resize", syncViewportLayout);
+    window.addEventListener("orientationchange", () => setTimeout(syncViewportLayout, 150));
+
+    document.getElementById("prevPageBtn").addEventListener("click", () => {
+      if (state.channelPage > 1) {
+        state.channelPage--;
+        renderChannels();
+      }
+    });
+    document.getElementById("nextPageBtn").addEventListener("click", () => {
+      const totalPages = Math.max(1, Math.ceil(getFilteredChannels().length / state.pageSize));
+      if (state.channelPage < totalPages) {
+        state.channelPage++;
+        renderChannels();
+      }
+    });
+    document.getElementById("vodPrevPageBtn").addEventListener("click", () => {
+      if (state.vodPage > 1) {
+        state.vodPage--;
+        renderVodSection();
+      }
+    });
+    document.getElementById("vodNextPageBtn").addEventListener("click", () => {
+      const filtered = state.vodItems.filter(v => v.type === state.activeTab && (state.selectedVodCategory === "Tümü" || v.category === state.selectedVodCategory));
+      const totalPages = Math.max(1, Math.ceil(filtered.length / 60));
+      if (state.vodPage < totalPages) {
+        state.vodPage++;
+        renderVodSection();
+      }
+    });
+
+    document.querySelectorAll(".tab-btn").forEach(btn => {
+      btn.addEventListener("click", () => switchSection(btn.dataset.section));
+    });
+
+    document.getElementById("searchInput").addEventListener("input", (e) => {
+      state.searchQuery = e.target.value.trim().toLowerCase();
+      state.channelPage = 1;
+      state.vodPage = 1;
+      if (state.activeTab === "live") {
+        renderChannels();
+      } else {
+        renderVodSection();
+      }
+    });
+
+    document.getElementById("openPlaylistBtn").addEventListener("click", () => {
+      renderSavedPlaylists();
+      playlistModal.classList.add("open");
+    });
+
+    document.getElementById("closePlaylistModal").addEventListener("click", () => {
+      playlistModal.classList.remove("open");
+    });
+
+    document.getElementById("resetDemoBtn").addEventListener("click", () => {
+      state.activePlaylistId = "demo";
+      state.channels = [...DEMO_CHANNELS];
+      state.vodItems = [...DEMO_VOD];
+      state.selectedCategory = "Tümü";
+      state.selectedVodCategory = "Tümü";
+      state.channelPage = 1;
+      state.vodPage = 1;
+      saveData();
+      renderSavedPlaylists();
+      renderCategories();
+      renderChannels();
+      renderFsDrawer();
+      if (state.activeTab !== "live") renderVodSection();
+      if (state.channels[0]) {
+        playStream(state.channels[0].url, state.channels[0].name, "Grup: " + state.channels[0].category, state.channels[0]);
+      }
+      playlistModal.classList.remove("open");
+      showToast("Demo listeye geçildi.", "info");
+    });
+
+    document.getElementById("loadM3uUrlBtn").addEventListener("click", async () => {
+      const url = document.getElementById("m3uUrlInput").value.trim();
+      const customName = document.getElementById("playlistNameInput").value.trim();
+      if (!url) {
+        showToast("Lütfen geçerli bir M3U URL girin.", "error");
+        return;
+      }
+
+      updateImportProgressUI(true, "Liste indiriliyor...", 15, 0, 0, 0);
+
+      const candidates = [
+        applyProxyIfNeeded(url),
+        url,
+        "https://corsproxy.io/?" + encodeURIComponent(url),
+        "https://api.allorigins.win/raw?url=" + encodeURIComponent(url)
+      ];
+
+      let loadedText = null;
+      const uniqueCandidates = [...new Set(candidates)];
+      for (let i = 0; i < uniqueCandidates.length; i++) {
+        try {
+          updateImportProgressUI(true, `Liste indiriliyor (Deneme ${i + 1})...`, 25 + i * 10, 0, 0, 0);
+          const res = await fetch(uniqueCandidates[i]);
+          if (res.ok) {
+            const txt = await res.text();
+            if (txt && txt.trim().length > 0) {
+              loadedText = txt;
+              break;
+            }
+          }
+        } catch (err) {}
+      }
+
+      if (loadedText) {
+        const label = customName || `URL Listesi (${new Date().toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })})`;
+        await applyParsedPlaylist(loadedText, label);
+      } else {
+        updateImportProgressUI(false);
+        showToast("URL indirilemedi. VPN/Proxy deneyin veya .m3u dosyası yükleyin.", "error");
+      }
+    });
+
+    document.getElementById("loadXtreamBtn").addEventListener("click", () => {
+      const host = document.getElementById("xtreamHost").value.trim().replace(/\/$/, "");
+      const user = document.getElementById("xtreamUser").value.trim();
+      const pass = document.getElementById("xtreamPass").value.trim();
+      if (!host || !user || !pass) {
+        showToast("Sunucu, kullanıcı adı ve şifre girin.", "error");
+        return;
+      }
+      if (!document.getElementById("playlistNameInput").value.trim()) {
+        document.getElementById("playlistNameInput").value = `Xtream (${user})`;
+      }
+      document.getElementById("m3uUrlInput").value = `${host}/get.php?username=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}&type=m3u_plus&output=ts`;
+      document.getElementById("loadM3uUrlBtn").click();
+    });
+
+    document.getElementById("m3uFileInput").addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      updateImportProgressUI(true, `"${file.name}" okunuyor...`, 15, 0, 0, 0);
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        document.getElementById("m3uRawInput").value = ev.target.result;
+        const name = document.getElementById("playlistNameInput").value.trim() || file.name.replace(/\.[^/.]+$/, "");
+        await applyParsedPlaylist(ev.target.result, name);
+      };
+      reader.readAsText(file);
+    });
+
+    document.getElementById("parseRawM3uBtn").addEventListener("click", async () => {
+      const raw = document.getElementById("m3uRawInput").value.trim();
+      if (!raw) {
+        showToast("Lütfen M3U içeriği yapıştırın.", "error");
+        return;
+      }
+      const name = document.getElementById("playlistNameInput").value.trim() || `Özel Liste #${state.savedPlaylists.length + 1}`;
+      await applyParsedPlaylist(raw, name);
+    });
+
+    document.getElementById("openVpnBtn").addEventListener("click", () => vpnModal.classList.add("open"));
+    document.getElementById("closeVpnModalBtn").addEventListener("click", () => vpnModal.classList.remove("open"));
+
+    function highlightVpnProfile(profileKey) {
+      document.querySelectorAll(".vpn-profile-btn").forEach(btn => {
+        const isSelected = btn.dataset.profile === profileKey;
+        btn.style.borderColor = isSelected ? "var(--accent)" : "var(--border)";
+        btn.style.background = isSelected ? "var(--accent-soft)" : "var(--bg-card)";
+      });
+    }
+
+    document.querySelectorAll(".vpn-profile-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const profile = btn.dataset.profile;
+        const proxy = btn.dataset.proxy || "";
+        const label = btn.dataset.label || "Dahili Profil";
+        document.getElementById("vpnProxyInput").value = proxy;
+        highlightVpnProfile(profile);
+
+        if (profile === "direct") {
+          state.vpnConfig = { active: false, profile: "direct", proxyPrefix: "", label: "" };
+          try { localStorage.removeItem("tvmate_vpn_cfg"); } catch (e) {}
+          updateVpnUI(false);
+          showToast("Doğrudan bağlantı moduna geçildi.", "info");
+        } else {
+          state.vpnConfig = { active: true, profile, proxyPrefix: proxy, label };
+          try { localStorage.setItem("tvmate_vpn_cfg", JSON.stringify(state.vpnConfig)); } catch (e) {}
+          updateVpnUI(true, label);
+          showToast(`${label} aktif edildi.`, "success");
+        }
+      });
+    });
+
+    document.getElementById("saveVpnBtn").addEventListener("click", () => {
+      const proxy = document.getElementById("vpnProxyInput").value.trim();
+      const url = document.getElementById("vpnUrlInput").value.trim();
+      const label = url ? url.split("/").pop() : (proxy ? "Özel Proxy" : "Dahili Profil");
+      const active = Boolean(proxy || url);
+      state.vpnConfig = { active, profile: active ? "custom" : "direct", proxyPrefix: proxy, label };
+      try {
+        localStorage.setItem("tvmate_vpn_cfg", JSON.stringify(state.vpnConfig));
+      } catch (e) {}
+      highlightVpnProfile(state.vpnConfig.profile);
+      updateVpnUI(active, label);
+      vpnModal.classList.remove("open");
+      showToast(active ? "VPN / Proxy ayarları kaydedildi." : "Doğrudan bağlantı aktif.", "success");
+    });
+
+    document.getElementById("disconnectVpnBtn").addEventListener("click", () => {
+      state.vpnConfig = { active: false, profile: "direct", proxyPrefix: "", label: "" };
+      localStorage.removeItem("tvmate_vpn_cfg");
+      document.getElementById("vpnProxyInput").value = "";
+      document.getElementById("vpnUrlInput").value = "";
+      highlightVpnProfile("direct");
+      updateVpnUI(false);
+      vpnModal.classList.remove("open");
+      showToast("VPN bağlantısı kapatıldı.", "info");
+    });
+
+    loadStoredData();
+    highlightVpnProfile(state.vpnConfig && state.vpnConfig.profile ? state.vpnConfig.profile : "direct");
+    renderCategories();
+    renderChannels();
+    renderFsDrawer();
+
+    let initialChannel = state.channels[0] || null;
+    if (state.channels.length > 0 && state.lastLiveSession) {
+      const matched = state.channels.find(c =>
+        (state.lastLiveSession.channelUrl && c.url === state.lastLiveSession.channelUrl) ||
+        (state.lastLiveSession.channelId && c.id === state.lastLiveSession.channelId) ||
+        (state.lastLiveSession.channelName && c.name === state.lastLiveSession.channelName)
+      );
+      if (matched) {
+        initialChannel = matched;
+      }
+    }
+
+    if (initialChannel) {
+      playStream(initialChannel.url, initialChannel.name, "Grup: " + initialChannel.category, initialChannel);
+      if (state.lastLiveSession && state.lastLiveSession.wasFullscreen) {
+        videoBox.classList.add("pseudo-fullscreen");
+        setTimeout(() => {
+          enterFullscreen();
+        }, 250);
+      }
+    }
+    setTimeout(() => {
+      const firstChannel = document.querySelector("#channelList .list-item.focusable");
+      if (firstChannel && document.activeElement === document.body) {
+        firstChannel.classList.add("tv-focused");
+        firstChannel.focus({ preventScroll: true });
+      }
+    }, 150);
+  </script>
+</body>
+</html>
